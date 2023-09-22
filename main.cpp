@@ -2,17 +2,18 @@
 @file main.cpp
 */
 
-#include <iostream>
-#include <fstream>
+#include "glm/glm.hpp"
 #include <cmath>
 #include <ctime>
-#include <vector>
-#include "glm/glm.hpp"
+#include <fstream>
+#include <iostream>
 #include <optional>
+#include <vector>
 
-#include "image.h"
+#include "Image.h"
 
-#define VOID_COLOR_RGB 0,0,0
+#define VOID_COLOR_RGB 0, 0, 0
+#define SCENE_Z 1.0f
 
 using namespace std;
 
@@ -22,7 +23,7 @@ using namespace std;
 class Ray
 {
  public:
-	glm::vec3 origin; ///< Origin of the ray
+	glm::vec3 origin;    ///< Origin of the ray
 	glm::vec3 direction; ///< Direction of the ray
 	/**
 	 Contructor of the ray
@@ -41,10 +42,10 @@ class Object;
  */
 struct Hit
 {
-	glm::vec3 normal; ///< Normal vector of the intersected object at the intersection point
+	glm::vec3 normal;       ///< Normal vector of the intersected object at the intersection point
 	glm::vec3 intersection; ///< Point of Intersection
-	float distance; ///< Distance from the origin of the ray to the intersection point
-	Object* object; ///< A pointer to the intersected object
+	float distance;         ///< Distance from the origin of the ray to the intersection point
+	Object* object;         ///< A pointer to the intersected object
 };
 
 /**
@@ -55,7 +56,7 @@ class Object
  public:
 	glm::vec3 color; ///< Color of the object
 	/** A function computing an intersection, which returns the structure optional<Hit> */
-	virtual optional<Hit> intersect(Ray ray) = 0;
+	virtual optional<Hit> intersect(const Ray& ray) = 0;
 };
 
 /**
@@ -64,7 +65,7 @@ class Object
 class Sphere : public Object
 {
  private:
-	float radius; ///< Radius of the sphere
+	float radius;     ///< Radius of the sphere
 	glm::vec3 center; ///< Center of the sphere
 
  public:
@@ -78,24 +79,31 @@ class Sphere : public Object
 	{
 		this->color = color;
 	}
-	/** Implementation of the intersection function*/
-	optional<Hit> intersect(Ray ray) override
+	/** Implementation of the intersection function */
+	optional<Hit> intersect(const Ray& ray) override
 	{
+		const glm::vec3 centerToOrigin = center - ray.origin;
+		const float c2 = glm::dot(centerToOrigin, centerToOrigin);
 
-		optional<Hit> hit;
+		const float a = glm::dot(centerToOrigin, ray.direction);
+		const float D2 = c2 - a * a;
 
-		/* -------------------------------------------------
-		 
-		Place for your code: ray-sphere intersection. Remember to set all the fields of the hit structure:
+		if (D2 > radius * radius)
+			return nullopt;
 
-		 hit.intersection =
-		 hit.normal =
-		 hit.distance =
-		 hit.object = this;
-		 
-		------------------------------------------------- */
+		const float b = sqrt(radius * radius - D2);
 
-		return hit;
+		const float t1 = min(a - b, a + b);
+		const float t2 = max(a - b, a + b);
+
+		if (t1 < 0 && t2 < 0)
+			return nullopt;
+
+		const float t = t1 < 0 ? t2 : t1;
+
+		const glm::vec3 intersection = ray.origin + t * ray.direction;
+		const glm::vec3 normal = glm::normalize(intersection - center);
+		return Hit{ normal, intersection, t, this };
 	}
 };
 
@@ -112,11 +120,11 @@ glm::vec3 trace_ray(Ray ray)
 	// hit structure representing the closest intersection
 	optional<Hit> closest_hit;
 
-	//Loop over all objects to find the closest intersection
+	// Loop over all objects to find the closest intersection
 	for (auto& object : objects)
 	{
 		optional<Hit> hit = object->intersect(ray);
-		if (!closest_hit || (hit && hit->distance < closest_hit->distance))
+		if (hit && (!closest_hit || hit->distance < closest_hit->distance))
 			closest_hit = hit;
 	}
 
@@ -124,12 +132,14 @@ glm::vec3 trace_ray(Ray ray)
 		return closest_hit->object->color;
 	return { VOID_COLOR_RGB };
 }
+
 /**
  Function defining the scene
  */
 void sceneDefinition()
 {
 	objects.push_back(new Sphere(1.0, glm::vec3(-0, -2, 8), glm::vec3(0.6, 0.9, 0.6)));
+	objects.push_back(new Sphere(1.0, glm::vec3(1, -2, 8), glm::vec3(0.6, 0.6, 0.9)));
 }
 
 int main(int argc, const char* argv[])
@@ -137,38 +147,34 @@ int main(int argc, const char* argv[])
 
 	clock_t t = clock(); // variable for keeping the time of the rendering
 
-	int width = 1024; //width of the image
+	int width = 1024; // width of the image
 	int height = 768; // height of the image
-	float fov = 90; // field of view
+	float fov = 90;   // field of view
+
+	// Compute the size of each pixel given the FOV
+	const float pixelSize = 2.0f * tan(glm::radians(fov / 2.0f)) / width;
 
 	sceneDefinition(); // Let's define the scene
 
 	Image image(width, height); // Create an image where we will store the result
 
-	/* -------------------------------------------------
-	 
-	Place for your code: Loop over pixels to form and traverse the rays through the scene
-	 
-	------------------------------------------------- */
+	const float sceneLeft = (float)-width * pixelSize / 2.0f;
+	const float sceneTop = (float)height * pixelSize / 2.0f;
 
 	for (int i = 0; i < width; i++)
 		for (int j = 0; j < height; j++)
 		{
+			glm::vec3 origin(0, 0, 0);
 
-			/*
-			 
-			Place for your code: ray definition for pixel (i,j), ray traversal
-			 
-			*/
+			const float x = sceneLeft + (float)i * pixelSize + pixelSize / 2.0f;
+			const float y = sceneTop - (float)j * pixelSize - pixelSize / 2.0f;
+			const float z = SCENE_Z;
+			glm::vec3 direction(x, y, z);
+			direction = glm::normalize(direction);
 
-			//Definition of the ray
-			//glm::vec3 origin(0, 0, 0);
-			//glm::vec3 direction(?, ?, ?);               // fill in the correct values
-			//direction = glm::normalize(direction);
+			Ray ray(origin, direction); // ray traversal
 
-			//Ray ray(origin, direction);  // ray traversal
-
-			//image.setPixel(i, j, trace_ray(ray));
+			image.setPixel(i, j, trace_ray(ray));
 		}
 
 	t = clock() - t;
@@ -178,11 +184,11 @@ int main(int argc, const char* argv[])
 	// Writing the final results of the rendering
 	if (argc == 2)
 	{
-		image.writeImage(argv[2]);
+		image.writeImage(argv[1]);
 	}
 	else
 	{
-		image.writeImage("./result.ppm");
+		image.writeImage("result.ppm");
 	}
 
 	return 0;
