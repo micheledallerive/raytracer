@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "Image.h"
+#include "Material.h"
 
 #define VOID_COLOR_RGB 0, 0, 0
 #define SCENE_Z 1.0f
@@ -55,8 +56,22 @@ class Object
 {
  public:
 	glm::vec3 color; ///< Color of the object
-	/** A function computing an intersection, which returns the structure optional<Hit> */
+	Material material; ///< Structure describing the material of the object
+	/** A function computing an intersection, which returns the structure Hit */
 	virtual optional<Hit> intersect(const Ray& ray) = 0;
+
+	/** Function that returns the material struct of the object*/
+	Material getMaterial()
+	{
+		return material;
+	}
+	/** Function that set the material
+	 @param material A structure desribing the material of the object
+	*/
+	void setMaterial(Material material)
+	{
+		this->material = material;
+	}
 };
 
 /**
@@ -79,6 +94,11 @@ class Sphere : public Object
 	{
 		this->color = color;
 	}
+	Sphere(float radius, glm::vec3 center, Material material) : radius(radius), center(center)
+	{
+		this->material = material;
+	}
+
 	/** Implementation of the intersection function */
 	optional<Hit> intersect(const Ray& ray) override
 	{
@@ -107,7 +127,53 @@ class Sphere : public Object
 	}
 };
 
+/**
+ Light class
+ */
+class Light
+{
+ public:
+	glm::vec3 position; ///< Position of the light source
+	glm::vec3 color; ///< Color/intentisty of the light source
+	Light(glm::vec3 position) : position(position)
+	{
+		color = glm::vec3(1.0);
+	}
+	Light(glm::vec3 position, glm::vec3 color) : position(position), color(color)
+	{
+	}
+};
+
+vector<Light*> lights; ///< A list of lights in the scene
+glm::vec3 ambient_light(1.0, 1.0, 1.0);
+
 vector<Object*> objects; ///< A list of all objects in the scene
+
+/** Function for computing color of an object according to the Phong Model
+ @param point A point belonging to the object for which the color is computed
+ @param normal A normal vector the the point
+ @param view_direction A normalized direction from the point to the viewer/camera
+ @param material A material structure representing the material of the object
+*/
+glm::vec3 PhongModel(glm::vec3 point, glm::vec3 normal, glm::vec3 view_direction, Material material)
+{
+
+	glm::vec3 color(0.0);
+
+	/*
+
+	 Assignment 2
+
+	 Phong model.
+	 Your code should implement a loop over all the lightsourses in the array lights and agredate the contribution of each of them to the final color of the object.
+	 Outside of the loop add also the ambient component from ambient_light.
+
+	*/
+
+	// The final color has to be clamped so the values do not go beyond 0 and 1.
+	color = glm::clamp(color, glm::vec3(0.0), glm::vec3(1.0));
+	return color;
+}
 
 /**
  Functions that computes a color along the ray
@@ -129,7 +195,11 @@ glm::vec3 trace_ray(Ray ray)
 	}
 
 	if (closest_hit)
-		return closest_hit->object->color;
+		return PhongModel(closest_hit->intersection,
+			closest_hit->normal,
+			glm::normalize(-ray.direction),
+			closest_hit->object->getMaterial());
+
 	return { VOID_COLOR_RGB };
 }
 
