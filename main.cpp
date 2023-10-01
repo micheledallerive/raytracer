@@ -157,22 +157,28 @@ vector<Object*> objects; ///< A list of all objects in the scene
 */
 glm::vec3 PhongModel(glm::vec3 point, glm::vec3 normal, glm::vec3 view_direction, Material material)
 {
+	glm::vec3 color = material.ambient * ambient_light; // diffusion
+	for (const auto& light : lights)
+	{
+		const glm::vec3 light_direction = glm::normalize(light->position - point);
+		glm::vec3 diffuse(0);
+		const float light_angle = glm::dot(normal, light_direction);
+		if (light_angle > 0)
+		{
+			diffuse = material.diffuse * light_angle * light->color;
+		}
 
-	glm::vec3 color(0.0);
+		glm::vec3 reflection_direction = glm::normalize(glm::reflect(-light_direction, normal));
+		glm::vec3 specular(0);
+		const float reflection_angle = glm::dot(reflection_direction, view_direction);
+		if (reflection_angle > 0)
+		{
+			specular = material.specular * pow(reflection_angle, material.shininess) * light->color;
+		}
 
-	/*
-
-	 Assignment 2
-
-	 Phong model.
-	 Your code should implement a loop over all the lightsourses in the array lights and agredate the contribution of each of them to the final color of the object.
-	 Outside of the loop add also the ambient component from ambient_light.
-
-	*/
-
-	// The final color has to be clamped so the values do not go beyond 0 and 1.
-	color = glm::clamp(color, glm::vec3(0.0), glm::vec3(1.0));
-	return color;
+		color += diffuse + specular;
+	}
+	return glm::clamp(color, 0.0f, 1.0f);
 }
 
 /**
@@ -208,8 +214,41 @@ glm::vec3 trace_ray(Ray ray)
  */
 void sceneDefinition()
 {
-	objects.push_back(new Sphere(1.0, glm::vec3(-0, -2, 8), glm::vec3(0.6, 0.9, 0.6)));
-	objects.push_back(new Sphere(1.0, glm::vec3(1, -2, 8), glm::vec3(0.6, 0.6, 0.9)));
+	objects.push_back(
+		new Sphere(
+			1.0,
+			glm::vec3(1, -2, 8),
+			Material{
+				.ambient = glm::vec3(0.07, 0.07, 0.1),
+				.diffuse = glm::vec3(0.7, 0.7, 1),
+				.specular = glm::vec3(0.6),
+				.shininess = 100
+			}));
+	objects.push_back(
+		new Sphere(
+			0.5,
+			glm::vec3(-1, -2.5, 6),
+			Material{
+				.ambient = { 0.01, 0.03, 0.03 },
+				.diffuse = { 1, 0.3, 0.3 },
+				.specular = glm::vec3(0.5),
+				.shininess = 10,
+			}
+		));
+	objects.push_back(
+		new Sphere(
+			1.0,
+			{ 3, -2, 6 },
+			Material{
+				.ambient = { 0.07, 0.09, 0.07 },
+				.diffuse = { 0.7, 0.9, 0.7 },
+				.specular = glm::vec3(0),
+				.shininess = 0
+			}));
+
+	lights.push_back(new Light(glm::vec3(0, 26, 5), glm::vec3(0.4, 0.4, 0.4)));
+	lights.push_back(new Light(glm::vec3(0, 1, 12), glm::vec3(0.4, 0.4, 0.4)));
+	lights.push_back(new Light(glm::vec3(0, 5, 1), glm::vec3(0.4, 0.4, 0.4)));
 }
 
 int main(int argc, const char* argv[])
