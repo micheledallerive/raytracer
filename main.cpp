@@ -49,6 +49,7 @@ struct Hit
 	glm::vec3 intersection; ///< Point of Intersection
 	float distance;         ///< Distance from the origin of the ray to the intersection point
 	Object* object;         ///< A pointer to the intersected object
+	glm::vec2 uv;            ///< Coordinates for computing the texture (texture coordinates)
 };
 
 /**
@@ -59,6 +60,10 @@ class Object
  private:
 	const variant<glm::vec3, Material> surface; ///< Surface of the object: either a color (i.e. vec3) or a material
  public:
+
+	Object() : surface(glm::vec3(1.0))
+	{
+	}
 
 	explicit Object(const glm::vec3& color) : surface(color)
 	{
@@ -71,8 +76,7 @@ class Object
 	/** A function computing an intersection, which returns the structure Hit */
 	virtual optional<Hit> intersect(const Ray& ray) = 0;
 
-	template<typename T>
-	optional<T> getSurfaceSafe() const
+	template<typename T> optional<T> getSurfaceSafe() const
 	{
 		if (holds_alternative<T>(surface))
 		{
@@ -87,12 +91,32 @@ class Object
 	 * @return the surface value for the type
 	 * @throws bad_variant_access if the type is not the one expected
 	 */
-	template<typename T>
-	T getSurface() const
+	template<typename T> T getSurface() const
 	{
 		return get<T>(surface);
 	}
 
+};
+
+class Plane : public Object
+{
+
+ private:
+	glm::vec3 normal;
+	glm::vec3 point;
+
+ public:
+	Plane(const glm::vec3& point, const glm::vec3& normal) : point(point), normal(normal), Object()
+	{
+	}
+	Plane(const glm::vec3& point, const glm::vec3& normal, const Material& material)
+		: point(point), normal(normal), Object(material)
+	{
+	}
+	optional<Hit> intersect(const Ray& ray) override
+	{
+		return nullopt;
+	}
 };
 
 /**
@@ -111,11 +135,13 @@ class Sphere : public Object
 	 @param center Center of the sphere
 	 @param color Color of the sphere
 	 */
-	Sphere(float radius, glm::vec3 center, glm::vec3 color) : radius(radius), center(center), Object(color)
+	Sphere(const float radius, const glm::vec3& center, const glm::vec3& color)
+		: radius(radius), center(center), Object(color)
 	{
 	}
 
-	Sphere(float radius, glm::vec3 center, Material material) : radius(radius), center(center), Object(material)
+	Sphere(const float radius, const glm::vec3& center, const Material& material)
+		: radius(radius), center(center), Object(material)
 	{
 	}
 
@@ -175,7 +201,7 @@ vector<shared_ptr<Object>> objects; ///< A list of all objects in the scene
  @param material A material structure representing the material of the object
 */
 glm::vec3
-phong_model(const glm::vec3& point, const glm::vec3& normal, const glm::vec3& view_direction, const Material& material)
+phong_model(const glm::vec3& point, const glm::vec3& normal, const glm::vec2& uv, const glm::vec3& view_direction, const Material& material)
 {
 	glm::vec3 color = material.ambient * ambient_light; // diffusion
 	for (const auto& light : lights)
@@ -225,10 +251,8 @@ glm::vec3 trace_ray(const Ray& ray)
 		const auto material = closest_hit->object->getSurfaceSafe<Material>();
 		if (material)
 		{
-			return phong_model(closest_hit->intersection,
-				closest_hit->normal,
-				glm::normalize(-ray.direction),
-				*material);
+			return phong_model(closest_hit->intersection, closest_hit->normal, closest_hit->uv,
+				glm::normalize(-ray.direction), *material);
 		}
 		else
 		{
@@ -239,41 +263,37 @@ glm::vec3 trace_ray(const Ray& ray)
 }
 
 /**
+ Function performing tonemapping of the intensities computed using the raytracer
+ @param intensity Input intensity
+ @return Tonemapped intensity in range (0,1)
+ */
+glm::vec3 tone_mapping(const glm::vec3& intensity)
+{
+
+	glm::vec3 tone_mapped = intensity; //tonemapped intensity
+	return glm::clamp(tone_mapped, glm::vec3(0.0), glm::vec3(1.0));
+}
+
+/**
  Function defining the scene
  */
 void sceneDefinition()
 {
 	objects.emplace_back(
-		new Sphere(
-			1.0,
-			glm::vec3(1, -2, 8),
-			Material{
-				.ambient = glm::vec3(0.07, 0.07, 0.1),
-				.diffuse = glm::vec3(0.7, 0.7, 1),
-				.specular = glm::vec3(0.6),
-				.shininess = 100
-			}));
+		new Sphere(1.0, glm::vec3(1, -2, 8),
+			Material{ glm::vec3(0.07, 0.07, 0.1),
+					  glm::vec3(0.7, 0.7, 1),
+					  glm::vec3(0.6), 100 }));
 	objects.emplace_back(
-		new Sphere(
-			0.5,
-			glm::vec3(-1, -2.5, 6),
-			Material{
-				.ambient = { 0.01, 0.03, 0.03 },
-				.diffuse = { 1, 0.3, 0.3 },
-				.specular = glm::vec3(0.5),
-				.shininess = 10,
-			}
-		));
+		new Sphere(0.5, glm::vec3(-1, -2.5, 6),
+			Material{{ 0.01, 0.03, 0.03 },
+					 { 1, 0.3, 0.3 },
+					 glm::vec3(0.5), 10, }));
 	objects.emplace_back(
-		new Sphere(
-			1.0,
-			glm::vec3(3, -2, 6),
-			Material{
-				.ambient = { 0.07, 0.09, 0.07 },
-				.diffuse = { 0.7, 0.9, 0.7 },
-				.specular = glm::vec3(0),
-				.shininess = 0
-			}));
+		new Sphere(1.0, glm::vec3(3, -2, 6),
+			Material{{ 0.07, 0.09, 0.07 },
+					 { 0.7, 0.9, 0.7 },
+					 glm::vec3(0), 0 }));
 
 	lights.emplace_back(new Light(glm::vec3(0, 26, 5), glm::vec3(0.4, 0.4, 0.4)));
 	lights.emplace_back(new Light(glm::vec3(0, 1, 12), glm::vec3(0.4, 0.4, 0.4)));
