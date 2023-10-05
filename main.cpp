@@ -115,7 +115,16 @@ class Plane : public Object
 	}
 	optional<Hit> intersect(const Ray& ray) override
 	{
-		return nullopt;
+		const float normal_dot = glm::dot(normal, ray.direction);
+		if (normal_dot == 0)
+			return nullopt;
+
+		const float t = glm::dot(normal, point - ray.origin) / normal_dot;
+		if (t < 0)
+			return nullopt;
+
+		const glm::vec3 intersection = ray.origin + t * ray.direction;
+		return Hit{ normal, intersection, t, this };
 	}
 };
 
@@ -286,14 +295,29 @@ void sceneDefinition()
 					  glm::vec3(0.6), 100 }));
 	objects.emplace_back(
 		new Sphere(0.5, glm::vec3(-1, -2.5, 6),
-			Material{{ 0.01, 0.03, 0.03 },
-					 { 1, 0.3, 0.3 },
-					 glm::vec3(0.5), 10, }));
+			Material{ glm::vec3(0.01, 0.03, 0.03),
+					  glm::vec3(1, 0.3, 0.3),
+					  glm::vec3(0.5), 10, }));
 	objects.emplace_back(
 		new Sphere(1.0, glm::vec3(3, -2, 6),
-			Material{{ 0.07, 0.09, 0.07 },
-					 { 0.7, 0.9, 0.7 },
-					 glm::vec3(0), 0 }));
+			Material{ glm::vec3(0.07, 0.09, 0.07),
+					  glm::vec3(0.7, 0.9, 0.7),
+					  glm::vec3(0), 0 }));
+
+	const Material wall_material = Material{
+		glm::vec3(0.07, 0.07, 0.1),
+		glm::vec3(0.2, 0.7, 1),
+		glm::vec3(0.2),
+		10,
+	};
+
+	// create a box from -15 to 15 in x coordinate, from -3 to 27 in y and from -0.01 to 30 in z
+	objects.emplace_back(new Plane(glm::vec3(-15, 0, 0), glm::vec3(1, 0, 0), wall_material));
+	objects.emplace_back(new Plane(glm::vec3(15, 0, 0), glm::vec3(-1, 0, 0), wall_material));
+	objects.emplace_back(new Plane(glm::vec3(0, -3, 0), glm::vec3(0, 1, 0), wall_material));
+	objects.emplace_back(new Plane(glm::vec3(0, 27, 0), glm::vec3(0, -1, 0), wall_material));
+	objects.emplace_back(new Plane(glm::vec3(0, 0, -0.01), glm::vec3(0, 0, 1), wall_material));
+	objects.emplace_back(new Plane(glm::vec3(0, 0, 30), glm::vec3(0, 0, -1), wall_material));
 
 	lights.emplace_back(new Light(glm::vec3(0, 26, 5), glm::vec3(0.4, 0.4, 0.4)));
 	lights.emplace_back(new Light(glm::vec3(0, 1, 12), glm::vec3(0.4, 0.4, 0.4)));
