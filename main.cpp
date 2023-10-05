@@ -14,6 +14,7 @@
 
 #include "image.h"
 #include "material.h"
+#include "textures.h"
 
 #define VOID_COLOR_RGB 0, 0, 0
 #define SCENE_Z 1.0f
@@ -178,7 +179,11 @@ class Sphere : public Object
 
 		const glm::vec3 intersection = ray.origin + t * ray.direction;
 		const glm::vec3 normal = glm::normalize(intersection - center);
-		return Hit{ normal, intersection, t, this };
+
+		const auto u = (float)(0.5 + atan2(normal.z, normal.x) / (2 * M_PI));
+		const auto v = (float)(0.5 + asin(normal.y) / M_PI);
+
+		return Hit{ normal, intersection, t, this, { u, v }};
 	}
 };
 
@@ -221,6 +226,8 @@ phong_model(const glm::vec3& point, const glm::vec3& normal, const glm::vec2& uv
 		if (light_angle > 0)
 		{
 			diffuse = material.diffuse * light_angle * light->color;
+			if (material.texture)
+				diffuse *= material.texture(uv);
 		}
 
 		glm::vec3 reflection_direction = glm::normalize(glm::reflect(-light_direction, normal));
@@ -288,6 +295,12 @@ glm::vec3 tone_mapping(const glm::vec3& intensity)
  */
 void sceneDefinition()
 {
+	objects.emplace_back(
+		new Sphere(6, glm::vec3(-5.5, 3, 20),
+			Material{ glm::vec3(0.07, 0.09, 0.07),
+					  glm::vec3(0.7, 0.9, 0.7),
+					  glm::vec3(0), 0, rainbowTexture }));
+
 	objects.emplace_back(
 		new Sphere(1.0, glm::vec3(1, -2, 8),
 			Material{ glm::vec3(0.07, 0.07, 0.1),

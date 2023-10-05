@@ -1,7 +1,8 @@
 CXX = g++
 CXXFLAGS = -g -std=c++17
+HEADERS = $(wildcard *.h)
 
-%.o: %.cpp
+%.o: %.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) $< -o $@
 
 %.png: %.ppm
