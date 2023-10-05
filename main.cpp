@@ -9,9 +9,11 @@
 #include <iostream>
 #include <optional>
 #include <vector>
+#include <variant>
+#include <memory>
 
-#include "Image.h"
-#include "Material.h"
+#include "image.h"
+#include "material.h"
 
 #define VOID_COLOR_RGB 0, 0, 0
 #define SCENE_Z 1.0f
@@ -54,24 +56,43 @@ struct Hit
  */
 class Object
 {
+ private:
+	const variant<glm::vec3, Material> surface; ///< Surface of the object: either a color (i.e. vec3) or a material
  public:
-	glm::vec3 color; ///< Color of the object
-	Material material; ///< Structure describing the material of the object
+
+	explicit Object(const glm::vec3& color) : surface(color)
+	{
+	}
+
+	explicit Object(const Material& material) : surface(material)
+	{
+	}
+
 	/** A function computing an intersection, which returns the structure Hit */
 	virtual optional<Hit> intersect(const Ray& ray) = 0;
 
-	/** Function that returns the material struct of the object*/
-	Material getMaterial()
+	template<typename T>
+	optional<T> getSurfaceSafe() const
 	{
-		return material;
+		if (holds_alternative<T>(surface))
+		{
+			return get<T>(surface);
+		}
+		return nullopt;
 	}
-	/** Function that set the material
-	 @param material A structure desribing the material of the object
-	*/
-	void setMaterial(Material material)
+
+	/**
+	 * @brief Get the Surface object without checking the type
+	 * @tparam T the type of the surface to get
+	 * @return the surface value for the type
+	 * @throws bad_variant_access if the type is not the one expected
+	 */
+	template<typename T>
+	T getSurface() const
 	{
-		this->material = material;
+		return get<T>(surface);
 	}
+
 };
 
 /**
@@ -90,13 +111,12 @@ class Sphere : public Object
 	 @param center Center of the sphere
 	 @param color Color of the sphere
 	 */
-	Sphere(float radius, glm::vec3 center, glm::vec3 color) : radius(radius), center(center)
+	Sphere(float radius, glm::vec3 center, glm::vec3 color) : radius(radius), center(center), Object(color)
 	{
-		this->color = color;
 	}
-	Sphere(float radius, glm::vec3 center, Material material) : radius(radius), center(center)
+
+	Sphere(float radius, glm::vec3 center, Material material) : radius(radius), center(center), Object(material)
 	{
-		this->material = material;
 	}
 
 	/** Implementation of the intersection function */
@@ -135,19 +155,18 @@ class Light
  public:
 	glm::vec3 position; ///< Position of the light source
 	glm::vec3 color; ///< Color/intentisty of the light source
-	Light(glm::vec3 position) : position(position)
+	explicit Light(glm::vec3 position) : position(position), color(glm::vec3(1.0))
 	{
-		color = glm::vec3(1.0);
 	}
 	Light(glm::vec3 position, glm::vec3 color) : position(position), color(color)
 	{
 	}
 };
 
-vector<Light*> lights; ///< A list of lights in the scene
 glm::vec3 ambient_light(1.0, 1.0, 1.0);
 
-vector<Object*> objects; ///< A list of all objects in the scene
+vector<shared_ptr<Light>> lights; ///< A list of lights in the scene
+vector<shared_ptr<Object>> objects; ///< A list of all objects in the scene
 
 /** Function for computing color of an object according to the Phong Model
  @param point A point belonging to the object for which the color is computed
@@ -155,7 +174,8 @@ vector<Object*> objects; ///< A list of all objects in the scene
  @param view_direction A normalized direction from the point to the viewer/camera
  @param material A material structure representing the material of the object
 */
-glm::vec3 PhongModel(glm::vec3 point, glm::vec3 normal, glm::vec3 view_direction, Material material)
+glm::vec3
+phong_model(const glm::vec3& point, const glm::vec3& normal, const glm::vec3& view_direction, const Material& material)
 {
 	glm::vec3 color = material.ambient * ambient_light; // diffusion
 	for (const auto& light : lights)
@@ -186,7 +206,7 @@ glm::vec3 PhongModel(glm::vec3 point, glm::vec3 normal, glm::vec3 view_direction
  @param ray Ray that should be traced through the scene
  @return Color at the intersection point
  */
-glm::vec3 trace_ray(Ray ray)
+glm::vec3 trace_ray(const Ray& ray)
 {
 
 	// hit structure representing the closest intersection
@@ -201,11 +221,20 @@ glm::vec3 trace_ray(Ray ray)
 	}
 
 	if (closest_hit)
-		return PhongModel(closest_hit->intersection,
-			closest_hit->normal,
-			glm::normalize(-ray.direction),
-			closest_hit->object->getMaterial());
-
+	{
+		const auto material = closest_hit->object->getSurfaceSafe<Material>();
+		if (material)
+		{
+			return phong_model(closest_hit->intersection,
+				closest_hit->normal,
+				glm::normalize(-ray.direction),
+				*material);
+		}
+		else
+		{
+			return closest_hit->object->getSurface<glm::vec3>();
+		}
+	}
 	return { VOID_COLOR_RGB };
 }
 
@@ -214,7 +243,7 @@ glm::vec3 trace_ray(Ray ray)
  */
 void sceneDefinition()
 {
-	objects.push_back(
+	objects.emplace_back(
 		new Sphere(
 			1.0,
 			glm::vec3(1, -2, 8),
@@ -224,7 +253,7 @@ void sceneDefinition()
 				.specular = glm::vec3(0.6),
 				.shininess = 100
 			}));
-	objects.push_back(
+	objects.emplace_back(
 		new Sphere(
 			0.5,
 			glm::vec3(-1, -2.5, 6),
@@ -235,10 +264,10 @@ void sceneDefinition()
 				.shininess = 10,
 			}
 		));
-	objects.push_back(
+	objects.emplace_back(
 		new Sphere(
 			1.0,
-			{ 3, -2, 6 },
+			glm::vec3(3, -2, 6),
 			Material{
 				.ambient = { 0.07, 0.09, 0.07 },
 				.diffuse = { 0.7, 0.9, 0.7 },
@@ -246,9 +275,9 @@ void sceneDefinition()
 				.shininess = 0
 			}));
 
-	lights.push_back(new Light(glm::vec3(0, 26, 5), glm::vec3(0.4, 0.4, 0.4)));
-	lights.push_back(new Light(glm::vec3(0, 1, 12), glm::vec3(0.4, 0.4, 0.4)));
-	lights.push_back(new Light(glm::vec3(0, 5, 1), glm::vec3(0.4, 0.4, 0.4)));
+	lights.emplace_back(new Light(glm::vec3(0, 26, 5), glm::vec3(0.4, 0.4, 0.4)));
+	lights.emplace_back(new Light(glm::vec3(0, 1, 12), glm::vec3(0.4, 0.4, 0.4)));
+	lights.emplace_back(new Light(glm::vec3(0, 5, 1), glm::vec3(0.4, 0.4, 0.4)));
 }
 
 int main(int argc, const char* argv[])
