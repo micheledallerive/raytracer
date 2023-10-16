@@ -20,3 +20,9 @@ clean:
 # watch continuously the file main.cpp, when there is a change call make run
 dev:
 	echo "main.cpp" | entr -n make run
+
+profile: all
+	rm -f callgrind.out.*
+	valgrind --tool=callgrind ./main.o
+	# graphically display the call graph
+	kcachegrind callgrind.out.*

@@ -20,6 +20,8 @@
 #define VOID_COLOR_RGB 0, 0, 0
 #define SCENE_Z 1.0f
 
+#define USE_BOUNDING_SPHERE 1
+
 using namespace std;
 
 /**
@@ -194,9 +196,11 @@ class Triangle : public Object
 {
  private:
 	array<glm::vec3, 3> _points;
+	float _area{ glm::length(glm::cross(_points[1] - _points[0], _points[2] - _points[0])) / 2 };
 	glm::vec3 _normal{ glm::normalize(glm::cross(_points[1] - _points[0], _points[2] - _points[0])) };
+	glm::vec3 _centroid{ (_points[0] + _points[1] + _points[2]) / 3.0f };
 
-	inline float area(const glm::vec3& point, const glm::vec3& next, const glm::vec3& prev)
+	inline float _subarea(const glm::vec3& point, const glm::vec3& next, const glm::vec3& prev)
 	{
 		const glm::vec3 n = glm::cross(next - point, prev - point);
 		const float sign = glm::sign(glm::dot(n, this->_normal));
@@ -213,9 +217,9 @@ class Triangle : public Object
 
 	inline bool is_inside(const glm::vec3& point)
 	{
-		return area(point, this->_points[1], this->_points[2]) >= 0
-			   && area(point, this->_points[2], this->_points[0]) >= 0
-			   && area(point, this->_points[0], this->_points[1]) >= 0;
+		return this->_subarea(point, this->_points[1], this->_points[2]) >= 0
+			   && this->_subarea(point, this->_points[2], this->_points[0]) >= 0
+			   && this->_subarea(point, this->_points[0], this->_points[1]) >= 0;
 	}
 
 	optional<Hit> intersect(const Ray& ray) override
@@ -242,6 +246,10 @@ class Mesh : public Object
 	glm::vec3 _position;
 	string _name;
 	vector<unique_ptr<Triangle>> _triangles;
+#if USE_BOUNDING_SPHERE
+	glm::vec3 _centroid;
+	unique_ptr<Sphere> _bounding_sphere;
+#endif
 
 	template<const int N>
 	array<string, N> parse_tokens(const string& s)
@@ -299,10 +307,40 @@ class Mesh : public Object
 				break;
 			}
 		}
+
+#if USE_BOUNDING_SPHERE
+		// compute centroid
+		float triangles_area = 0.0f;
+		for (auto& triangle : this->_triangles)
+		{
+			this->_centroid += triangle->_centroid * triangle->_area;
+			triangles_area += triangle->_area;
+		}
+		this->_centroid /= triangles_area;
+
+		// compute bounding sphere
+		float max_distance = 0.0f;
+		for (auto& triangle : this->_triangles)
+		{
+			for (auto& point : triangle->_points)
+			{
+				const float distance = glm::distance(point, this->_centroid);
+				if (distance > max_distance)
+					max_distance = distance;
+			}
+		}
+		this->_bounding_sphere = make_unique<Sphere>(max_distance, this->_centroid, Material{ glm::vec3(0.0f),
+																							  glm::vec3(0.0f),
+																							  glm::vec3(0.0f), 0 });
+#endif
 	}
 
 	optional<Hit> intersect(const Ray& ray) override
 	{
+#if USE_BOUNDING_SPHERE
+		if (!this->_bounding_sphere->intersect(ray))
+			return nullopt;
+#endif
 		optional<Hit> closest_hit = nullopt;
 		for (auto& triangle : this->_triangles)
 		{
@@ -332,7 +370,7 @@ class Light
 
 glm::vec3 ambient_light(0.3f);
 
-vector<shared_ptr<Light>> lights; ///< A list of lights in the scene
+vector<unique_ptr<Light>> lights; ///< A list of lights in the scene
 vector<shared_ptr<Object>> objects; ///< A list of all objects in the scene
 
 /** Function for computing color of an object according to the Phong Model
@@ -445,8 +483,9 @@ void sceneDefinition()
 	const Material white_material = Material{ glm::vec3(0.07, 0.07, 0.07), glm::vec3(0.7, 0.7, 0.7), glm::vec3(0.5),
 											  10 };
 
-	const string path = "./meshes/bunny.obj";
-	objects.emplace_back(new Mesh(path, { -5, -2, 8 }, white_material));
+	objects.emplace_back(new Mesh("./meshes/bunny.obj", { 0, -3, 8 }, white_material));
+//	objects.emplace_back(new Mesh("./meshes/armadillo.obj", { -4, -3, 12 }, white_material));
+//	objects.emplace_back(new Mesh("./meshes/lucy.obj", { 4, -3, 12 }, white_material));
 
 //	objects.emplace_back(new Triangle({ 3.6, 2.945824, 8.535236 }, { 3.9, 2.957204, 8.467452 }, { 4.7,
 //																								  2.345807,
