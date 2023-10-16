@@ -203,7 +203,7 @@ class Light
 	}
 };
 
-glm::vec3 ambient_light(1.0, 1.0, 1.0);
+glm::vec3 ambient_light(0.3f);
 
 vector<shared_ptr<Light>> lights; ///< A list of lights in the scene
 vector<shared_ptr<Object>> objects; ///< A list of all objects in the scene
@@ -238,9 +238,12 @@ phong_model(const glm::vec3& point, const glm::vec3& normal, const glm::vec2& uv
 			specular = material.specular * pow(reflection_angle, material.shininess) * light->color;
 		}
 
-		color += diffuse + specular;
+		const float distance = glm::distance(light->position, point) + 1.0f;
+		const float attenuation = 1.0f / (distance * distance);
+
+		color += attenuation * (diffuse + specular);
 	}
-	return glm::clamp(color, 0.0f, 1.0f);
+	return color;
 }
 
 /**
@@ -267,8 +270,8 @@ glm::vec3 trace_ray(const Ray& ray)
 		const auto material = closest_hit->object->getSurfaceSafe<Material>();
 		if (material)
 		{
-			return phong_model(closest_hit->intersection, closest_hit->normal, closest_hit->uv,
-				glm::normalize(-ray.direction), *material);
+			return phong_model(closest_hit->intersection, closest_hit->normal, closest_hit->uv, glm::normalize(-ray
+				.direction), *material);
 		}
 		else
 		{
@@ -285,9 +288,13 @@ glm::vec3 trace_ray(const Ray& ray)
  */
 glm::vec3 tone_mapping(const glm::vec3& intensity)
 {
+	const float a = 1.0f;
+	const float beta = 1.3f;
+	const float gamma = 2.2f;
 
-	glm::vec3 tone_mapped = intensity; //tonemapped intensity
-	return glm::clamp(tone_mapped, glm::vec3(0.0), glm::vec3(1.0));
+	const glm::vec3 Ib = glm::pow(intensity, glm::vec3(beta));
+	const glm::vec3 mapped_intensity = glm::pow(a * Ib, glm::vec3(1.0f / gamma));
+	return glm::clamp(mapped_intensity, 0.0f, 1.0f);
 }
 
 /**
@@ -295,46 +302,31 @@ glm::vec3 tone_mapping(const glm::vec3& intensity)
  */
 void sceneDefinition()
 {
-	objects.emplace_back(
-		new Sphere(6, glm::vec3(-5.5, 3, 20),
-			Material{ glm::vec3(0.07, 0.09, 0.07),
-					  glm::vec3(0.7, 0.9, 0.7),
-					  glm::vec3(0), 0, rainbowTexture }));
+	objects.emplace_back(new Sphere(7, glm::vec3(-6, 4, 23), Material{ glm::vec3(0.07, 0.07, 0.07),
+																		 glm::vec3(0.7, 0.7, 0.7), glm::vec3(0), 0,
+																		 rainbowTexture }));
 
-	objects.emplace_back(
-		new Sphere(1.0, glm::vec3(1, -2, 8),
-			Material{ glm::vec3(0.07, 0.07, 0.1),
-					  glm::vec3(0.7, 0.7, 1),
-					  glm::vec3(0.6), 100 }));
-	objects.emplace_back(
-		new Sphere(0.5, glm::vec3(-1, -2.5, 6),
-			Material{ glm::vec3(0.01, 0.03, 0.03),
-					  glm::vec3(1, 0.3, 0.3),
-					  glm::vec3(0.5), 10, }));
-	objects.emplace_back(
-		new Sphere(1.0, glm::vec3(3, -2, 6),
-			Material{ glm::vec3(0.07, 0.09, 0.07),
-					  glm::vec3(0.7, 0.9, 0.7),
-					  glm::vec3(0), 0 }));
+	const Material red_material = Material{ glm::vec3(0.01, 0.03, 0.03), glm::vec3(1, 0.3, 0.3), glm::vec3(0.5), 10, };
+	const Material blue_material = Material{ glm::vec3(0.07, 0.07, 0.1), glm::vec3(0.25, 0.25, 1), glm::vec3(0.6), 100 };
+	const Material green_material = Material{ glm::vec3(0.07, 0.09, 0.07), glm::vec3(0.4, 0.9, 0.4), glm::vec3(0), 0 };
 
-	const Material wall_material = Material{
-		glm::vec3(0.07, 0.07, 0.1),
-		glm::vec3(0.2, 0.7, 1),
-		glm::vec3(0.2),
-		10,
-	};
+	objects.emplace_back(new Sphere(1.0, glm::vec3(1, -2, 8), blue_material));
+	objects.emplace_back(new Sphere(0.5, glm::vec3(-1, -2.5, 6), red_material));
+	objects.emplace_back(new Sphere(1.0, glm::vec3(3, -2, 6), green_material));
+
+	const Material white_material = Material{ glm::vec3(0.07, 0.07, 0.07), glm::vec3(0.7, 0.7, 0.7), glm::vec3(0.5), 10 };
 
 	// create a box from -15 to 15 in x coordinate, from -3 to 27 in y and from -0.01 to 30 in z
-	objects.emplace_back(new Plane(glm::vec3(-15, 0, 0), glm::vec3(1, 0, 0), wall_material));
-	objects.emplace_back(new Plane(glm::vec3(15, 0, 0), glm::vec3(-1, 0, 0), wall_material));
-	objects.emplace_back(new Plane(glm::vec3(0, -3, 0), glm::vec3(0, 1, 0), wall_material));
-	objects.emplace_back(new Plane(glm::vec3(0, 27, 0), glm::vec3(0, -1, 0), wall_material));
-	objects.emplace_back(new Plane(glm::vec3(0, 0, -0.01), glm::vec3(0, 0, 1), wall_material));
-	objects.emplace_back(new Plane(glm::vec3(0, 0, 30), glm::vec3(0, 0, -1), wall_material));
+	objects.emplace_back(new Plane(glm::vec3(-15, 0, 0), glm::vec3(1, 0, 0), red_material));
+	objects.emplace_back(new Plane(glm::vec3(15, 0, 0), glm::vec3(-1, 0, 0), blue_material));
+	objects.emplace_back(new Plane(glm::vec3(0, -3, 0), glm::vec3(0, 1, 0), white_material));
+	objects.emplace_back(new Plane(glm::vec3(0, 27, 0), glm::vec3(0, -1, 0), blue_material));
+	objects.emplace_back(new Plane(glm::vec3(0, 0, -0.01), glm::vec3(0, 0, 1), green_material));
+	objects.emplace_back(new Plane(glm::vec3(0, 0, 30), glm::vec3(0, 0, -1), green_material));
 
-	lights.emplace_back(new Light(glm::vec3(0, 26, 5), glm::vec3(0.4, 0.4, 0.4)));
-	lights.emplace_back(new Light(glm::vec3(0, 1, 12), glm::vec3(0.4, 0.4, 0.4)));
-	lights.emplace_back(new Light(glm::vec3(0, 5, 1), glm::vec3(0.4, 0.4, 0.4)));
+	lights.emplace_back(new Light(glm::vec3(0, 26, 5), glm::vec3(175)));
+	lights.emplace_back(new Light(glm::vec3(0, 1, 12), glm::vec3(30)));
+	lights.emplace_back(new Light(glm::vec3(0, 5, 1), glm::vec3(90)));
 }
 
 int main(int argc, const char* argv[])
@@ -369,7 +361,7 @@ int main(int argc, const char* argv[])
 
 			Ray ray(origin, direction); // ray traversal
 
-			image.setPixel(i, j, trace_ray(ray));
+			image.setPixel(i, j, tone_mapping(trace_ray(ray)));
 		}
 
 	t = clock() - t;

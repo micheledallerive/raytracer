@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -g -std=c++17
+CXXFLAGS = -g -std=c++17 -Ofast
 HEADERS = $(wildcard *.h)
 
 %.o: %.cpp $(HEADERS)
@@ -16,3 +16,7 @@ run: all
 
 clean:
 	rm -f *.o
+
+# watch continuously the file main.cpp, when there is a change call make run
+dev:
+	echo "main.cpp" | entr -n make run
