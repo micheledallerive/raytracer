@@ -3,3 +3,4 @@ glm
 *.ppm
 !.git*
 *.o
+meshes/

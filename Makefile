@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -g -std=c++17 -Ofast
+CXXFLAGS = -g -std=c++17 -O3
 HEADERS = $(wildcard *.h)
 
 %.o: %.cpp $(HEADERS)

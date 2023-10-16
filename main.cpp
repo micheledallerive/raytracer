@@ -7,6 +7,7 @@
 #include <ctime>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <optional>
 #include <vector>
 #include <variant>
@@ -187,6 +188,132 @@ class Sphere : public Object
 	}
 };
 
+class Mesh;
+
+class Triangle : public Object
+{
+ private:
+	array<glm::vec3, 3> _points;
+	glm::vec3 _normal{ glm::normalize(glm::cross(_points[1] - _points[0], _points[2] - _points[0])) };
+
+	inline float area(const glm::vec3& point, const glm::vec3& next, const glm::vec3& prev)
+	{
+		const glm::vec3 n = glm::cross(next - point, prev - point);
+		const float sign = glm::sign(glm::dot(n, this->_normal));
+		return glm::length(n) * (sign >= 0.0f ? 1.0f : -1.0f) * 0.5f;
+	}
+ public:
+	friend class Mesh;
+	explicit Triangle(array<glm::vec3, 3> points, const Material& material) : _points(points), Object(material)
+	{
+	}
+	Triangle(glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, const Material& material) : Triangle({ p1, p2, p3 }, material)
+	{
+	}
+
+	inline bool is_inside(const glm::vec3& point)
+	{
+		return area(point, this->_points[1], this->_points[2]) >= 0
+			   && area(point, this->_points[2], this->_points[0]) >= 0
+			   && area(point, this->_points[0], this->_points[1]) >= 0;
+	}
+
+	optional<Hit> intersect(const Ray& ray) override
+	{
+		const optional<Hit> plane_hit = Plane(this->_points[0], this->_normal).intersect(ray);
+		if (!plane_hit)
+			return plane_hit;
+
+		if (!is_inside(plane_hit->intersection))
+			return nullopt;
+
+		return Hit{
+			.normal = this->_normal,
+			.intersection = plane_hit->intersection,
+			.distance = plane_hit->distance,
+			.object = this
+		};
+	}
+};
+
+class Mesh : public Object
+{
+ private:
+	glm::vec3 _position;
+	string _name;
+	vector<unique_ptr<Triangle>> _triangles;
+
+	template<const int N>
+	array<string, N> parse_tokens(const string& s)
+	{
+		istringstream iss(s);
+		array<string, N> parts;
+		for (int i = 0; i < N; ++i)
+		{
+			iss >> parts[i];
+		}
+		return parts;
+	}
+ public:
+	Mesh(const string& file_name, const glm::vec3& position, const Material& material) : _position(position)
+	{
+		ifstream in(file_name, ios::in);
+		/*
+		 * OBJ files are composed of:
+		 * - Comments (starting with #)
+		 * - Name of the object (starting with o)
+		 * - Vertices (in the form of "v <x> <y> <z>")
+		 * - Faces (in the form of "f <idx 1> <idx 2> <idx 3>")
+		 */
+		vector<glm::vec3> vertices; // could be optimized by reserving based on the file size!
+		string line;
+		while (getline(in, line))
+		{
+			switch (line[0])
+			{
+			case 'o':
+			{
+				this->_name = std::move(parse_tokens<2>(line))[1];
+				break;
+			}
+			case 'v':
+			{
+				array<string, 4> s_vertex = std::move(parse_tokens<4>(line));
+				vertices.emplace_back(stof(s_vertex[1]), stof(s_vertex[2]), stof(s_vertex[3]));
+				break;
+			}
+			case 'f':
+			{
+				array<string, 4> s_face = std::move(parse_tokens<4>(line));
+				array<glm::vec3, 3> face_vxs{};
+				for (int i = 0; i < 3; ++i)
+				{
+					int idx = stoi(s_face[i + 1]) - 1;
+					glm::vec3 vertex = vertices[idx];
+					face_vxs[i] = vertex + position;
+				}
+				this->_triangles.push_back(make_unique<Triangle>(face_vxs, material));
+				break;
+			}
+			default:
+				break;
+			}
+		}
+	}
+
+	optional<Hit> intersect(const Ray& ray) override
+	{
+		optional<Hit> closest_hit = nullopt;
+		for (auto& triangle : this->_triangles)
+		{
+			optional<Hit> current_hit = triangle->intersect(ray);
+			if (current_hit && (!closest_hit || current_hit->distance < closest_hit->distance))
+				closest_hit = current_hit;
+		}
+		return closest_hit;
+	}
+};
+
 /**
  Light class
  */
@@ -302,20 +429,28 @@ glm::vec3 tone_mapping(const glm::vec3& intensity)
  */
 void sceneDefinition()
 {
-	objects.emplace_back(new Sphere(7, glm::vec3(-6, 4, 23), Material{ glm::vec3(0.07, 0.07, 0.07),
-																		 glm::vec3(0.7, 0.7, 0.7), glm::vec3(0), 0,
-																		 rainbowTexture }));
+	// objects.emplace_back(new Sphere(7, glm::vec3(-6, 4, 23), Material{ glm::vec3(0.07, 0.07, 0.07),
+//																	   glm::vec3(0.7, 0.7, 0.7), glm::vec3(0), 0,
+//																	   rainbowTexture }));
 
 	const Material red_material = Material{ glm::vec3(0.01, 0.03, 0.03), glm::vec3(1, 0.3, 0.3), glm::vec3(0.5), 10, };
-	const Material blue_material = Material{ glm::vec3(0.07, 0.07, 0.1), glm::vec3(0.25, 0.25, 1), glm::vec3(0.6), 100 };
+	const Material blue_material = Material{ glm::vec3(0.07, 0.07, 0.1), glm::vec3(0.25, 0.25, 1), glm::vec3(0.6),
+											 100 };
 	const Material green_material = Material{ glm::vec3(0.07, 0.09, 0.07), glm::vec3(0.4, 0.9, 0.4), glm::vec3(0), 0 };
 
-	objects.emplace_back(new Sphere(1.0, glm::vec3(1, -2, 8), blue_material));
-	objects.emplace_back(new Sphere(0.5, glm::vec3(-1, -2.5, 6), red_material));
-	objects.emplace_back(new Sphere(1.0, glm::vec3(3, -2, 6), green_material));
+//	objects.emplace_back(new Sphere(1.0, glm::vec3(1, -2, 8), blue_material));
+//	objects.emplace_back(new Sphere(0.5, glm::vec3(-1, -2.5, 6), red_material));
+//	objects.emplace_back(new Sphere(1.0, glm::vec3(3, -2, 6), green_material));
 
-	const Material white_material = Material{ glm::vec3(0.07, 0.07, 0.07), glm::vec3(0.7, 0.7, 0.7), glm::vec3(0.5), 10 };
+	const Material white_material = Material{ glm::vec3(0.07, 0.07, 0.07), glm::vec3(0.7, 0.7, 0.7), glm::vec3(0.5),
+											  10 };
 
+	const string path = "./meshes/bunny.obj";
+	objects.emplace_back(new Mesh(path, { -5, -2, 8 }, white_material));
+
+//	objects.emplace_back(new Triangle({ 3.6, 2.945824, 8.535236 }, { 3.9, 2.957204, 8.467452 }, { 4.7,
+//																								  2.345807,
+//																								  8.464094 }, blue_material));
 	// create a box from -15 to 15 in x coordinate, from -3 to 27 in y and from -0.01 to 30 in z
 	objects.emplace_back(new Plane(glm::vec3(-15, 0, 0), glm::vec3(1, 0, 0), red_material));
 	objects.emplace_back(new Plane(glm::vec3(15, 0, 0), glm::vec3(-1, 0, 0), blue_material));
@@ -325,7 +460,7 @@ void sceneDefinition()
 	objects.emplace_back(new Plane(glm::vec3(0, 0, 30), glm::vec3(0, 0, -1), green_material));
 
 	lights.emplace_back(new Light(glm::vec3(0, 26, 5), glm::vec3(175)));
-	lights.emplace_back(new Light(glm::vec3(0, 1, 12), glm::vec3(30)));
+	// lights.emplace_back(new Light(glm::vec3(0, 1, 12), glm::vec3(30)));
 	lights.emplace_back(new Light(glm::vec3(0, 5, 1), glm::vec3(90)));
 }
 
