@@ -13,7 +13,9 @@
 #ifndef Image_h
 #define Image_h
 
-using namespace std;
+#include <fstream>
+#include <vector>
+#include "glm/glm.hpp"
 
 /**
  Class allowing for creating an image and writing it to a file
@@ -24,14 +26,14 @@ class Image
  private:
 	const int width; ///< width of the image
 	const int height; ///< height of the image
-	vector<vector<glm::vec3>> data; ///< a pointer to the data representing the images
+	std::vector<std::vector<glm::vec3>> data; ///< a pointer to the data representing the images
 
  public:
 	/**
 	 @param width with of the image
 	 @param height height of the image
 	 */
-	Image(const int width, const int height) : width(width), height(height), data(width, vector<glm::vec3>(height))
+	Image(const int width, const int height) : width(width), height(height), data(width, std::vector<glm::vec3>(height))
 	{
 	}
 
@@ -39,19 +41,19 @@ class Image
 	 Writes and image to a file in ppm format
 	 @param path the path where to the target image
 	 */
-	void writeImage(const string& path)
+	void writeImage(const std::string& path)
 	{
-		ofstream file(path);
-		file << "P3" << endl;
-		file << width << " " << height << endl;
-		file << 255 << endl;
+		std::ofstream file(path);
+		file << "P3" << std::endl;
+		file << width << " " << height << std::endl;
+		file << 255 << std::endl;
 		for (int h = 0; h < height; h++)
 		{
 			for (int w = 0; w < width; w++)
 			{
 				file << (int)data[w][h].r << " " << (int)data[w][h].g << " " << (int)data[w][h].b << " ";
 			}
-			file << endl;
+			file << std::endl;
 		}
 		file.close();
 	}
