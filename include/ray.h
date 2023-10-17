@@ -2,8 +2,7 @@
 // Created by michele on 17.10.23.
 //
 
-#ifndef _RAY_H_
-#define _RAY_H_
+#pragma once
 
 #include "glm/glm.hpp"
 
@@ -37,4 +36,3 @@ struct Hit
 	Object* object;         ///< A pointer to the intersected object
 	glm::vec2 uv;            ///< Coordinates for computing the texture (texture coordinates)
 };
-#endif //_RAY_H_

@@ -2,8 +2,7 @@
 // Created by michele on 17.10.23.
 //
 
-#ifndef _LIGHT_H_
-#define _LIGHT_H_
+#pragma once
 /**
  Light class
  */
@@ -19,4 +18,3 @@ class Light
 	{
 	}
 };
-#endif //_LIGHT_H_

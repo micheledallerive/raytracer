@@ -2,8 +2,8 @@
 // Created by michele on 17.10.23.
 //
 
-#ifndef _PLANE_H_
-#define _PLANE_H_
+#pragma once
+
 
 #include "object.h"
 #include "../ray.h"
@@ -39,4 +39,3 @@ class Plane : public Object
 		return Hit{ normal, intersection, t, this };
 	}
 };
-#endif //_PLANE_H_

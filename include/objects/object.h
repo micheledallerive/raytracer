@@ -2,8 +2,8 @@
 // Created by michele on 17.10.23.
 //
 
-#ifndef _OBJECT_H_
-#define _OBJECT_H_
+#pragma once
+
 
 #include <variant>
 #include <optional>
@@ -58,4 +58,3 @@ class Object
 	}
 
 };
-#endif //_OBJECT_H_

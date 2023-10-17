@@ -17,7 +17,6 @@
 #include <memory>
 #include "include/glm/glm.hpp"
 
-
 #define VOID_COLOR_RGB 0, 0, 0
 #define SCENE_Z 1.0f
 

@@ -5,8 +5,7 @@
 //  Created by Piotr Didyk on 14.07.21.
 //
 
-#ifndef Material_h
-#define Material_h
+#pragma once
 
 #include <functional>
 #include "glm/glm.hpp"
@@ -21,5 +20,3 @@ struct Material
 	float shininess = 0.0; ///< Exponent for Phong model
 	std::function<glm::vec3(glm::vec2)> texture; ///< Texture function (glm::vec3) -> glm::vec2
 };
-
-#endif /* Material_h */

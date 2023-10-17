@@ -2,8 +2,7 @@
 // Created by michele on 17.10.23.
 //
 
-#ifndef _TRIANGLE_H_
-#define _TRIANGLE_H_
+#pragma once
 
 #include "object.h"
 #include "plane.h"
@@ -81,4 +80,3 @@ class Triangle : public Object
 		};
 	}
 };
-#endif //_TRIANGLE_H_

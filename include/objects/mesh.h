@@ -2,8 +2,8 @@
 // Created by michele on 17.10.23.
 //
 
-#ifndef _MESH_H_
-#define _MESH_H_
+#pragma once
+
 
 #include <string>
 #include <memory>
@@ -162,4 +162,3 @@ class Mesh : public Object
 		return closest_hit;
 	}
 };
-#endif //_MESH_H_

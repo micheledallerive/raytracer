@@ -10,8 +10,7 @@
 //  Created by Piotr Didyk on 14.07.21.
 //
 
-#ifndef Image_h
-#define Image_h
+#pragma once
 
 #include <fstream>
 #include <vector>
@@ -96,4 +95,3 @@ class Image
 	}
 };
 
-#endif /* Image_h */

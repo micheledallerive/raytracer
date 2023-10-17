@@ -2,8 +2,8 @@
 // Created by michele on 17.10.23.
 //
 
-#ifndef _SPHERE_H_
-#define _SPHERE_H_
+#pragma once
+
 
 #include "object.h"
 
@@ -64,4 +64,3 @@ class Sphere : public Object
 		return Hit{ normal, intersection, t, this, { u, v }};
 	}
 };
-#endif //_SPHERE_H_
