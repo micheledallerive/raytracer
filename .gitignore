@@ -5,3 +5,4 @@ glm
 *.o
 meshes/
 callgrind*
+memcheck.log

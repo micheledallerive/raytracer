@@ -138,8 +138,8 @@ class Plane : public Object
 class Sphere : public Object
 {
  private:
-	float radius;     ///< Radius of the sphere
-	glm::vec3 center; ///< Center of the sphere
+	float radius{ 0 };     ///< Radius of the sphere
+	glm::vec3 center{ 0 }; ///< Center of the sphere
 
  public:
 	/**
@@ -271,7 +271,7 @@ class Mesh : public Object
 	string _name;
 	vector<unique_ptr<Triangle>> _triangles;
 #if USE_BOUNDING_SPHERE
-	glm::vec3 _centroid;
+	glm::vec3 _centroid{ 0.0f };
 	unique_ptr<Sphere> _bounding_sphere;
 #endif
 
@@ -541,7 +541,7 @@ void sceneDefinition()
 	const Material white_material = Material{ glm::vec3(0.07, 0.07, 0.07), glm::vec3(0.7, 0.7, 0.7), glm::vec3(0.5),
 											  10 };
 
-	objects.emplace_back(new Mesh("./meshes/bunny_with_normals.obj", { 0, -3, 8 }, white_material));
+	objects.emplace_back(new Mesh("./meshes/bunny.obj", { 0, -3, 8 }, white_material));
 //	objects.emplace_back(new Mesh("./meshes/armadillo.obj", { -4, -3, 12 }, white_material));
 //	objects.emplace_back(new Mesh("./meshes/lucy.obj", { 4, -3, 12 }, white_material));
 

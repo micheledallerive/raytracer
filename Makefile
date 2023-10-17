@@ -26,3 +26,6 @@ profile: all
 	valgrind --tool=callgrind ./main.o
 	# graphically display the call graph
 	kcachegrind callgrind.out.*
+
+memcheck: all
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./main.o 2> memcheck.log
