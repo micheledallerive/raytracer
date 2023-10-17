@@ -4,3 +4,4 @@ glm
 !.git*
 *.o
 meshes/
+callgrind*

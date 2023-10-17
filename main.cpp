@@ -190,41 +190,65 @@ class Sphere : public Object
 	}
 };
 
-class Mesh;
-
 class Triangle : public Object
 {
  private:
-	array<glm::vec3, 3> _points;
-	float _area{ glm::length(glm::cross(_points[1] - _points[0], _points[2] - _points[0])) / 2 };
-	glm::vec3 _normal{ glm::normalize(glm::cross(_points[1] - _points[0], _points[2] - _points[0])) };
-	glm::vec3 _centroid{ (_points[0] + _points[1] + _points[2]) / 3.0f };
-
 	inline float _subarea(const glm::vec3& point, const glm::vec3& next, const glm::vec3& prev)
 	{
 		const glm::vec3 n = glm::cross(next - point, prev - point);
-		const float sign = glm::sign(glm::dot(n, this->_normal));
+		const float sign = glm::sign(glm::dot(n, this->normal));
 		return glm::length(n) * (sign >= 0.0f ? 1.0f : -1.0f) * 0.5f;
 	}
  public:
-	friend class Mesh;
-	explicit Triangle(array<glm::vec3, 3> points, const Material& material) : _points(points), Object(material)
+	const array<glm::vec3, 3> points;
+
+	const float area{ glm::length(glm::cross(points[1] - points[0], points[2] - points[0])) / 2 };
+	const optional<array<glm::vec3, 3>> face_normals{ nullopt };
+	const glm::vec3 normal{ glm::normalize(glm::cross(points[1] - points[0], points[2] - points[0])) };
+	const glm::vec3 centroid{ (points[0] + points[1] + points[2]) / 3.0f };
+
+	explicit Triangle(array<glm::vec3, 3> points, const Material& material) : points(points), Object(material)
 	{
 	}
-	Triangle(glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, const Material& material) : Triangle({ p1, p2, p3 }, material)
+	explicit Triangle(array<glm::vec3, 3> points) : points(points), Object()
+	{
+	}
+
+	Triangle(array<glm::vec3, 3> points, const array<glm::vec3, 3> fnormals, const Material& material)
+		: points(points), face_normals(fnormals), Object(material)
+	{
+	}
+
+	Triangle(array<glm::vec3, 3> points, const array<glm::vec3, 3> fnormals)
+		: points(points), face_normals(fnormals), Object()
 	{
 	}
 
 	inline bool is_inside(const glm::vec3& point)
 	{
-		return this->_subarea(point, this->_points[1], this->_points[2]) >= 0
-			   && this->_subarea(point, this->_points[2], this->_points[0]) >= 0
-			   && this->_subarea(point, this->_points[0], this->_points[1]) >= 0;
+		return this->_subarea(point, this->points[1], this->points[2]) >= 0
+			   && this->_subarea(point, this->points[2], this->points[0]) >= 0
+			   && this->_subarea(point, this->points[0], this->points[1]) >= 0;
+	}
+
+	glm::vec3 compute_hit_normal(const glm::vec3& point)
+	{
+		if (this->face_normals)
+		{
+			const float a1 = this->_subarea(point, this->points[1], this->points[2]);
+			const float a2 = this->_subarea(point, this->points[2], this->points[0]);
+			const float a3 = this->_subarea(point, this->points[0], this->points[1]);
+			const float total_area = a1 + a2 + a3;
+			return glm::normalize(
+				(a1 / total_area) * this->face_normals->at(0) + (a2 / total_area) * this->face_normals->at(1)
+				+ (a3 / total_area) * this->face_normals->at(2));
+		}
+		return this->normal;
 	}
 
 	optional<Hit> intersect(const Ray& ray) override
 	{
-		const optional<Hit> plane_hit = Plane(this->_points[0], this->_normal).intersect(ray);
+		const optional<Hit> plane_hit = Plane(this->points[0], this->normal).intersect(ray);
 		if (!plane_hit)
 			return plane_hit;
 
@@ -232,7 +256,7 @@ class Triangle : public Object
 			return nullopt;
 
 		return Hit{
-			.normal = this->_normal,
+			.normal = compute_hit_normal(plane_hit->intersection),
 			.intersection = plane_hit->intersection,
 			.distance = plane_hit->distance,
 			.object = this
@@ -252,15 +276,18 @@ class Mesh : public Object
 #endif
 
 	template<const int N>
-	array<string, N> parse_tokens(const string& s)
+	array<string, N> parse_tokens(const string& s, const string& delim = " ")
 	{
-		istringstream iss(s);
-		array<string, N> parts;
-		for (int i = 0; i < N; ++i)
+		array<string, N> tokens{};
+		int last_idx = 0;
+		for (int i = 0; i < N - 1; ++i)
 		{
-			iss >> parts[i];
+			const auto idx = s.find(delim, last_idx);
+			tokens[i] = s.substr(last_idx, idx - last_idx);
+			last_idx = idx + delim.size();
 		}
-		return parts;
+		tokens[N - 1] = s.substr(last_idx);
+		return tokens;
 	}
  public:
 	Mesh(const string& file_name, const glm::vec3& position, const Material& material) : _position(position)
@@ -274,7 +301,11 @@ class Mesh : public Object
 		 * - Faces (in the form of "f <idx 1> <idx 2> <idx 3>")
 		 */
 		vector<glm::vec3> vertices; // could be optimized by reserving based on the file size!
+		vector<glm::vec3> vertex_normals;
+
 		string line;
+
+		bool smooth = false;
 		while (getline(in, line))
 		{
 			switch (line[0])
@@ -287,21 +318,48 @@ class Mesh : public Object
 			case 'v':
 			{
 				array<string, 4> s_vertex = std::move(parse_tokens<4>(line));
-				vertices.emplace_back(stof(s_vertex[1]), stof(s_vertex[2]), stof(s_vertex[3]));
+
+				vector<glm::vec3>& target = line[1] == 'n' ? vertex_normals : vertices;
+				target.emplace_back(stof(s_vertex[1]), stof(s_vertex[2]), stof(s_vertex[3]));
 				break;
 			}
 			case 'f':
 			{
 				array<string, 4> s_face = std::move(parse_tokens<4>(line));
 				array<glm::vec3, 3> face_vxs{};
+				array<glm::vec3, 3> face_normals{};
 				for (int i = 0; i < 3; ++i)
 				{
-					int idx = stoi(s_face[i + 1]) - 1;
-					glm::vec3 vertex = vertices[idx];
-					face_vxs[i] = vertex + position;
+					// Assuming there is no texture indes after the vector index
+					if (!smooth)
+					{
+						int idx = stoi(s_face[i + 1]) - 1;
+						glm::vec3 vertex = vertices[idx];
+						face_vxs[i] = vertex + position;
+					}
+					else
+					{
+						// face is in the form of "f <idx 1>//<normal idx 1> ..."
+						const auto tokens = parse_tokens<2>(s_face[i + 1], "//");
+						int vidx = stoi(tokens[0]) - 1;
+						int nidx = stoi(tokens[1]) - 1;
+						face_vxs[i] = vertices[vidx] + position;
+						face_normals[i] = vertex_normals[nidx];
+					}
 				}
-				this->_triangles.push_back(make_unique<Triangle>(face_vxs, material));
+				if (smooth)
+				{
+					this->_triangles.push_back(make_unique<Triangle>(face_vxs, face_normals, material));
+				}
+				else
+				{
+					this->_triangles.push_back(make_unique<Triangle>(face_vxs, material));
+				}
 				break;
+			}
+			case 's':
+			{
+				smooth = (line == "s 1" || line == "s on");
 			}
 			default:
 				break;
@@ -313,8 +371,8 @@ class Mesh : public Object
 		float triangles_area = 0.0f;
 		for (auto& triangle : this->_triangles)
 		{
-			this->_centroid += triangle->_centroid * triangle->_area;
-			triangles_area += triangle->_area;
+			this->_centroid += triangle->centroid * triangle->area;
+			triangles_area += triangle->area;
 		}
 		this->_centroid /= triangles_area;
 
@@ -322,7 +380,7 @@ class Mesh : public Object
 		float max_distance = 0.0f;
 		for (auto& triangle : this->_triangles)
 		{
-			for (auto& point : triangle->_points)
+			for (auto& point : triangle->points)
 			{
 				const float distance = glm::distance(point, this->_centroid);
 				if (distance > max_distance)
@@ -483,7 +541,7 @@ void sceneDefinition()
 	const Material white_material = Material{ glm::vec3(0.07, 0.07, 0.07), glm::vec3(0.7, 0.7, 0.7), glm::vec3(0.5),
 											  10 };
 
-	objects.emplace_back(new Mesh("./meshes/bunny.obj", { 0, -3, 8 }, white_material));
+	objects.emplace_back(new Mesh("./meshes/bunny_with_normals.obj", { 0, -3, 8 }, white_material));
 //	objects.emplace_back(new Mesh("./meshes/armadillo.obj", { -4, -3, 12 }, white_material));
 //	objects.emplace_back(new Mesh("./meshes/lucy.obj", { 4, -3, 12 }, white_material));
 
