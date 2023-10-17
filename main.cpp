@@ -9,6 +9,8 @@
 #include "include/objects/mesh.h"
 #include "include/light.h"
 
+#include "include/mesh-loader.h"
+
 #include <cmath>
 #include <ctime>
 #include <iostream>
@@ -137,9 +139,12 @@ void sceneDefinition()
 	const Material white_material = Material{ glm::vec3(0.07, 0.07, 0.07), glm::vec3(0.7, 0.7, 0.7), glm::vec3(0.5),
 											  10 };
 
-	objects.emplace_back(new Mesh("./meshes/bunny.obj", { 0, -3, 8 }, white_material));
-//	objects.emplace_back(new Mesh("./meshes/armadillo.obj", { -4, -3, 12 }, white_material));
-//	objects.emplace_back(new Mesh("./meshes/lucy.obj", { 4, -3, 12 }, white_material));
+//	objects
+//		.emplace_back(MeshLoader::load(MeshType::OBJ, "./meshes/bunny_with_normals.obj", { 0, -3, 8 }, white_material));
+	objects.emplace_back(MeshLoader::load(MeshType::OBJ, "./meshes/armadillo_with_normals.obj", { -3, -3,
+																								  8 }, white_material));
+//	objects
+//		.emplace_back(MeshLoader::load(MeshType::OBJ, "./meshes/lucy_with_normals.obj", { 4, -3, 12 }, white_material));
 
 //	objects.emplace_back(new Triangle({ 3.6, 2.945824, 8.535236 }, { 3.9, 2.957204, 8.467452 }, { 4.7,
 //																								  2.345807,
