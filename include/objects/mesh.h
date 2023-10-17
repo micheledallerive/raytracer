@@ -12,8 +12,6 @@
 #include "triangle.h"
 #include "sphere.h"
 
-#define USE_BOUNDING_SPHERE 1
-
 enum MeshType
 {
 	OBJ

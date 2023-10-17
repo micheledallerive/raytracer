@@ -1,6 +1,10 @@
 /**
 @file main.cpp
 */
+
+
+#define USE_BOUNDING_SPHERE 1
+
 #include "include/image.h"
 #include "include/material.h"
 #include "include/ray.h"
@@ -59,7 +63,7 @@ phong_model(const glm::vec3& point, const glm::vec3& normal, const glm::vec2& uv
 			specular = material.specular * pow(reflection_angle, material.shininess) * light->color;
 		}
 
-		const float distance = glm::distance(light->position, point) + 1.0f;
+		const float distance = max(glm::distance(light->position, point), 1.0f);
 		const float attenuation = 1.0f / (distance * distance);
 
 		color += attenuation * (diffuse + specular);
@@ -139,12 +143,12 @@ void sceneDefinition()
 	const Material white_material = Material{ glm::vec3(0.07, 0.07, 0.07), glm::vec3(0.7, 0.7, 0.7), glm::vec3(0.5),
 											  10 };
 
-//	objects
-//		.emplace_back(MeshLoader::load(MeshType::OBJ, "./meshes/bunny_with_normals.obj", { 0, -3, 8 }, white_material));
-	objects.emplace_back(MeshLoader::load(MeshType::OBJ, "./meshes/armadillo_with_normals.obj", { -3, -3,
-																								  8 }, white_material));
-//	objects
-//		.emplace_back(MeshLoader::load(MeshType::OBJ, "./meshes/lucy_with_normals.obj", { 4, -3, 12 }, white_material));
+	objects
+		.emplace_back(MeshLoader::load(MeshType::OBJ, "./meshes/bunny.obj", { 0, -3, 7 }, white_material));
+	objects.emplace_back(MeshLoader::load(MeshType::OBJ, "./meshes/armadillo.obj", { -4, -3,
+																								  10 }, white_material));
+	objects
+		.emplace_back(MeshLoader::load(MeshType::OBJ, "./meshes/lucy.obj", { 4, -3, 10 }, white_material));
 
 //	objects.emplace_back(new Triangle({ 3.6, 2.945824, 8.535236 }, { 3.9, 2.957204, 8.467452 }, { 4.7,
 //																								  2.345807,
@@ -167,8 +171,8 @@ int main(int argc, const char* argv[])
 
 	clock_t t = clock(); // variable for keeping the time of the rendering
 
-	int width = 1024; // width of the image
-	int height = 768; // height of the image
+	int width = 2048; // width of the image
+	int height = 1536; // height of the image
 	float fov = 90;   // field of view
 
 	// Compute the size of each pixel given the FOV
