@@ -2,7 +2,6 @@
 @file main.cpp
 */
 
-
 #define USE_BOUNDING_SPHERE 1
 
 #include "include/image.h"
@@ -22,13 +21,15 @@
 #include <vector>
 #include <memory>
 #include "include/glm/glm.hpp"
+#include "include/objects/cone.h"
+#include "include/glm/ext/matrix_transform.hpp"
 
 #define VOID_COLOR_RGB 0, 0, 0
 #define SCENE_Z 1.0f
 
 using namespace std;
 
-const glm::vec3 ambient_light(0.3f);
+const glm::vec3 ambient_light(0.001f);
 
 vector<unique_ptr<Light>> lights; ///< A list of lights in the scene
 vector<shared_ptr<Object>> objects; ///< A list of all objects in the scene
@@ -63,7 +64,7 @@ phong_model(const glm::vec3& point, const glm::vec3& normal, const glm::vec2& uv
 			specular = material.specular * pow(reflection_angle, material.shininess) * light->color;
 		}
 
-		const float distance = max(glm::distance(light->position, point), 1.0f);
+		const float distance = max(glm::distance(light->position, point), 0.1f);
 		const float attenuation = 1.0f / (distance * distance);
 
 		color += attenuation * (diffuse + specular);
@@ -113,12 +114,10 @@ glm::vec3 trace_ray(const Ray& ray)
  */
 glm::vec3 tone_mapping(const glm::vec3& intensity)
 {
-	const float a = 1.0f;
-	const float beta = 1.3f;
-	const float gamma = 2.2f;
+	const float a = 12.0f;
+	const float gamma = 2.0f;
 
-	const glm::vec3 Ib = glm::pow(intensity, glm::vec3(beta));
-	const glm::vec3 mapped_intensity = glm::pow(a * Ib, glm::vec3(1.0f / gamma));
+	const glm::vec3 mapped_intensity = a * glm::pow(intensity, glm::vec3(1.0f / gamma));
 	return glm::clamp(mapped_intensity, 0.0f, 1.0f);
 }
 
@@ -143,17 +142,33 @@ void sceneDefinition()
 	const Material white_material = Material{ glm::vec3(0.07, 0.07, 0.07), glm::vec3(0.7, 0.7, 0.7), glm::vec3(0.5),
 											  10 };
 
-	objects
-		.emplace_back(MeshLoader::load(MeshType::OBJ, "./meshes/bunny.obj", { 0, -3, 7 }, white_material));
-	objects.emplace_back(MeshLoader::load(MeshType::OBJ, "./meshes/armadillo.obj", { -4, -3,
-																								  10 }, white_material));
-	objects
-		.emplace_back(MeshLoader::load(MeshType::OBJ, "./meshes/lucy.obj", { 4, -3, 10 }, white_material));
+//	objects
+//		.emplace_back(MeshLoader::load(MeshType::OBJ, "./meshes/bunny.obj", { 0, -3, 7 }, white_material));
+//	objects.emplace_back(MeshLoader::load(MeshType::OBJ, "./meshes/armadillo.obj", { -4, -3,
+//																								  10 }, white_material));
+//	objects
+//		.emplace_back(MeshLoader::load(MeshType::OBJ, "./meshes/lucy.obj", { 4, -3, 10 }, white_material));
 
 //	objects.emplace_back(new Triangle({ 3.6, 2.945824, 8.535236 }, { 3.9, 2.957204, 8.467452 }, { 4.7,
 //																								  2.345807,
 //																								  8.464094 }, blue_material));
 	// create a box from -15 to 15 in x coordinate, from -3 to 27 in y and from -0.01 to 30 in z
+
+	const Material yellow_material = Material{ glm::vec3(0.03, 0.03, 0.03), glm::vec3(0.35, 0.35, 0.0f), glm::vec3(1.0f),
+											   100 };
+	auto cone1 = make_shared<Cone>(yellow_material);
+	cone1->transform(glm::translate(glm::mat4(1.0f), glm::vec3(5, 9, 14)));
+	cone1->transform(glm::scale(glm::mat4(1.0f), glm::vec3(3, -12, 3)));
+	objects.push_back(cone1);
+
+	auto cone2 = make_shared<Cone>(green_material);
+	cone2->transform(glm::translate(glm::mat4(1.0f), glm::vec3(6, -3, 7)));
+
+	const float rotation = std::acos(1.0f / std::sqrt(10.0f));
+	cone2->transform(glm::rotate(glm::mat4(1.0f), rotation, glm::vec3(0, 0, 1)));
+	cone2->transform(glm::scale(glm::mat4(1.0f), glm::vec3(1, 3, 1)));
+	objects.push_back(cone2);
+
 	objects.emplace_back(new Plane(glm::vec3(-15, 0, 0), glm::vec3(1, 0, 0), red_material));
 	objects.emplace_back(new Plane(glm::vec3(15, 0, 0), glm::vec3(-1, 0, 0), blue_material));
 	objects.emplace_back(new Plane(glm::vec3(0, -3, 0), glm::vec3(0, 1, 0), white_material));
@@ -161,9 +176,9 @@ void sceneDefinition()
 	objects.emplace_back(new Plane(glm::vec3(0, 0, -0.01), glm::vec3(0, 0, 1), green_material));
 	objects.emplace_back(new Plane(glm::vec3(0, 0, 30), glm::vec3(0, 0, -1), green_material));
 
-	lights.emplace_back(new Light(glm::vec3(0, 26, 5), glm::vec3(175)));
-	// lights.emplace_back(new Light(glm::vec3(0, 1, 12), glm::vec3(30)));
-	lights.emplace_back(new Light(glm::vec3(0, 5, 1), glm::vec3(90)));
+	lights.emplace_back(new Light(glm::vec3(0, 26, 5), glm::vec3(1.0f)));
+	lights.emplace_back(new Light(glm::vec3(0, 1, 12), glm::vec3(0.1f)));
+	lights.emplace_back(new Light(glm::vec3(0, 5, 1), glm::vec3(0.4f)));
 }
 
 int main(int argc, const char* argv[])
@@ -171,8 +186,8 @@ int main(int argc, const char* argv[])
 
 	clock_t t = clock(); // variable for keeping the time of the rendering
 
-	int width = 2048; // width of the image
-	int height = 1536; // height of the image
+	int width = 1024; // width of the image
+	int height = 768; // height of the image
 	float fov = 90;   // field of view
 
 	// Compute the size of each pixel given the FOV

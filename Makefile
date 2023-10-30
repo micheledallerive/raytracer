@@ -1,8 +1,10 @@
 CXX = g++
 CXXFLAGS = -g -std=c++17 -O3
-HEADERS = $(wildcard **/*.h)
+# Create headers variable with all .h files in any subdirectory but in include/glm/
+HEADERS = $(shell find . -name '*.h' -not -path "./include/glm/*")
 
 %.o: %.cpp $(HEADERS)
+	echo $(HEADERS)
 	$(CXX) $(CXXFLAGS) $< -o $@
 
 %.png: %.ppm
