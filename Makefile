@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -g -std=c++17 -O0
+CXXFLAGS = -g -std=c++17 -Ofast
 # Create headers variable with all .h files in any subdirectory but in include/glm/
 HEADERS = $(shell find . -name '*.h' -not -path "./include/glm/*")
 

@@ -4,7 +4,6 @@
 
 #pragma once
 
-
 #include "object.h"
 
 /**
@@ -12,40 +11,34 @@
  */
 class Sphere : public Object
 {
- private:
-	float radius{ 0 };     ///< Radius of the sphere
-	glm::vec3 center{ 0 }; ///< Center of the sphere
-
  public:
 	/**
 	 The constructor of the sphere
-	 @param radius Radius of the sphere
-	 @param center Center of the sphere
 	 @param color Color of the sphere
 	 */
-	Sphere(const float radius, const glm::vec3& center, const glm::vec3& color)
-		: radius(radius), center(center), Object(color)
+	Sphere(const glm::vec3& color)
+		: Object(color)
 	{
 	}
 
-	Sphere(const float radius, const glm::vec3& center, const Material& material)
-		: radius(radius), center(center), Object(material)
+	Sphere(const Material& material)
+		: Object(material)
 	{
 	}
 
 	/** Implementation of the intersection function */
 	std::optional<Hit> intersect(const Ray& ray) override
 	{
-		const glm::vec3 centerToOrigin = center - ray.origin;
-		const float c2 = glm::dot(centerToOrigin, centerToOrigin);
+		const Ray local_ray = this->transformRayToLocal(ray);
+		const float c2 = glm::dot(local_ray.origin, local_ray.origin);
 
-		const float a = glm::dot(centerToOrigin, ray.direction);
+		const float a = glm::dot(-local_ray.origin, local_ray.direction);
 		const float D2 = c2 - a * a;
 
-		if (D2 > radius * radius)
+		if (D2 > 1)
 			return std::nullopt;
 
-		const float b = std::sqrt(radius * radius - D2);
+		const float b = std::sqrt(1 - D2);
 
 		const float t1 = std::min(a - b, a + b);
 		const float t2 = std::max(a - b, a + b);
@@ -55,12 +48,12 @@ class Sphere : public Object
 
 		const float t = t1 < 0 ? t2 : t1;
 
-		const glm::vec3 intersection = ray.origin + t * ray.direction;
-		const glm::vec3 normal = glm::normalize(intersection - center);
+		const glm::vec3 intersection = local_ray.origin + t * local_ray.direction;
+		const glm::vec3 normal = glm::normalize(intersection);
 
 		const auto u = (float)(0.5 + atan2(normal.z, normal.x) / (2 * M_PI));
 		const auto v = (float)(0.5 + asin(normal.y) / M_PI);
 
-		return Hit{ normal, intersection, t, this, { u, v }};
+		return this->transformHitToGlobal(Hit{ normal, intersection, t, this, { u, v }}, ray);
 	}
 };

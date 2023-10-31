@@ -33,7 +33,8 @@ class Object
 				.normal = glm::normalize(glm::vec3(normalMatrix * glm::vec4(hit->normal, 0))),
 				.intersection = globalIntersection,
 				.distance = glm::distance(globalIntersection, ray.origin),
-				.object = hit->object
+				.object = hit->object,
+				.uv = hit->uv
 			};
 		}
 		return std::nullopt;

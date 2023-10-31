@@ -11,6 +11,7 @@
 #include "object.h"
 #include "triangle.h"
 #include "sphere.h"
+#include "../glm/ext/matrix_transform.hpp"
 
 enum MeshType
 {
@@ -54,10 +55,9 @@ class Mesh : public Object
 					max_distance = distance;
 			}
 		}
-		this->_bounding_sphere = std::make_unique<Sphere>(max_distance, this->_centroid, Material{ glm::vec3(0.0f),
-																								   glm::vec3(0.0f),
-																								   glm::vec3(0.0f),
-																								   0 });
+		this->_bounding_sphere = std::make_unique<Sphere>(glm::vec3(0));
+		this->_bounding_sphere->transform(glm::scale(glm::mat4(1.0f), glm::vec3(max_distance)));
+		this->_bounding_sphere->transform(glm::translate(glm::mat4(1.0f), this->_centroid));
 #endif
 	}
 

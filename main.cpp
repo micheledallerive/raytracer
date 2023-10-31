@@ -11,7 +11,7 @@
 #include "include/objects/plane.h"
 #include "include/objects/mesh.h"
 #include "include/light.h"
-
+#include "include/textures.h"
 #include "include/mesh-loader.h"
 
 #include <cmath>
@@ -126,18 +126,33 @@ glm::vec3 tone_mapping(const glm::vec3& intensity)
  */
 void sceneDefinition()
 {
-	// objects.emplace_back(new Sphere(7, glm::vec3(-6, 4, 23), Material{ glm::vec3(0.07, 0.07, 0.07),
-//																	   glm::vec3(0.7, 0.7, 0.7), glm::vec3(0), 0,
-//																	   rainbowTexture }));
+	const Material rainbow_material = Material{ glm::vec3(0.07, 0.07, 0.07),
+												glm::vec3(0.7, 0.7, 0.7), glm::vec3(0), 0,
+												rainbowTexture };
+	Sphere* rainbow_sphere = new Sphere(rainbow_material);
+	rainbow_sphere->transform(glm::translate(glm::mat4(1.0f), glm::vec3(-6, 4, 23)));
+	rainbow_sphere->transform(glm::scale(glm::mat4(1.0f), glm::vec3(7)));
+	rainbow_sphere->transform(glm::rotate(glm::mat4(1.0f), glm::radians(92.0f), glm::vec3(0, 1, 0)));
+	objects.emplace_back(rainbow_sphere);
 
 	const Material red_material = Material{ glm::vec3(0.01, 0.03, 0.03), glm::vec3(1, 0.3, 0.3), glm::vec3(0.5), 10, };
 	const Material blue_material = Material{ glm::vec3(0.07, 0.07, 0.1), glm::vec3(0.25, 0.25, 1), glm::vec3(0.6),
 											 100 };
 	const Material green_material = Material{ glm::vec3(0.07, 0.09, 0.07), glm::vec3(0.4, 0.9, 0.4), glm::vec3(0), 0 };
 
-//	objects.emplace_back(new Sphere(1.0, glm::vec3(1, -2, 8), blue_material));
+	auto* blue_sphere = new Sphere(blue_material);
+	blue_sphere->transform(glm::translate(glm::mat4(1.0f), glm::vec3(1, -2, 8)));
+	objects.emplace_back(blue_sphere);
+
 //	objects.emplace_back(new Sphere(0.5, glm::vec3(-1, -2.5, 6), red_material));
-//	objects.emplace_back(new Sphere(1.0, glm::vec3(3, -2, 6), green_material));
+	auto* red_sphere = new Sphere(red_material);
+	red_sphere->transform(glm::translate(glm::mat4(1.0f), glm::vec3(-1, -2.5, 6)));
+	red_sphere->transform(glm::scale(glm::mat4(1.0f), glm::vec3(0.5)));
+	objects.emplace_back(red_sphere);
+
+	auto* green_sphere = new Sphere(green_material);
+	green_sphere->transform(glm::translate(glm::mat4(1.0f), glm::vec3(3, -2, 6)));
+//	objects.emplace_back(green_sphere);
 
 	const Material white_material = Material{ glm::vec3(0.07, 0.07, 0.07), glm::vec3(0.7, 0.7, 0.7), glm::vec3(0.5),
 											  10 };
@@ -184,7 +199,11 @@ void sceneDefinition()
 
 int main(int argc, const char* argv[])
 {
-
+	if (argc >= 4) // ./main <filename> <current frame> <tot frames>
+	{
+		int current_frame = atoi(argv[2]);
+		int tot_frames = atoi(argv[3]);
+	}
 	clock_t t = clock(); // variable for keeping the time of the rendering
 
 	int width = 1024; // width of the image
@@ -222,7 +241,7 @@ int main(int argc, const char* argv[])
 	cout << "I could render at " << (float)CLOCKS_PER_SEC / ((float)t) << " frames per second." << endl;
 
 	// Writing the final results of the rendering
-	if (argc == 2)
+	if (argc >= 2)
 	{
 		image.writeImage(argv[1]);
 	}
