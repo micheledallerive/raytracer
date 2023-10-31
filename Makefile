@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -g -std=c++17 -O3
+CXXFLAGS = -g -std=c++17 -O0
 # Create headers variable with all .h files in any subdirectory but in include/glm/
 HEADERS = $(shell find . -name '*.h' -not -path "./include/glm/*")
 
@@ -21,7 +21,7 @@ clean:
 
 # watch continuously the file main.cpp, when there is a change call make run
 dev:
-	echo "main.cpp" | entr -n make run
+	find . -type f \( -iname \*.h -o -iname \*.cpp \) | entr -n make run
 
 profile: all
 	rm -f callgrind.out.*

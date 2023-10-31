@@ -24,7 +24,7 @@ class Object
 	glm::mat4 inverseTransformationMatrix = glm::mat4(1.0f); ///< Matrix representing the transformation from the global to the local coordinate system
 	glm::mat4 normalMatrix = glm::mat4(1.0f); ///< Matrix for transforming normal vectors from the local to the global coordinate system
 
-	[[nodiscard]] std::optional<Hit> transformHitToGlobal(const std::optional<Hit>&& hit, const Ray &ray) const
+	[[nodiscard]] std::optional<Hit> transformHitToGlobal(const std::optional<Hit>&& hit, const Ray& ray) const
 	{
 		if (hit)
 		{
@@ -37,6 +37,11 @@ class Object
 			};
 		}
 		return std::nullopt;
+	}
+	[[nodiscard]] Ray transformRayToLocal(const Ray& ray) const
+	{
+		return { glm::vec3(inverseTransformationMatrix * glm::vec4(ray.origin, 1)),
+				 glm::normalize(glm::vec3(inverseTransformationMatrix * glm::vec4(ray.direction, 0))) };
 	}
  public:
 	Object() : surface(glm::vec3(1.0))

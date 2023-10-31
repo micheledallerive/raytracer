@@ -154,7 +154,8 @@ void sceneDefinition()
 //																								  8.464094 }, blue_material));
 	// create a box from -15 to 15 in x coordinate, from -3 to 27 in y and from -0.01 to 30 in z
 
-	const Material yellow_material = Material{ glm::vec3(0.03, 0.03, 0.03), glm::vec3(0.35, 0.35, 0.0f), glm::vec3(1.0f),
+	const Material yellow_material = Material{ glm::vec3(0.03, 0.03, 0.03), glm::vec3(0.35, 0.35, 0.0f),
+											   glm::vec3(1.0f),
 											   100 };
 	auto cone1 = make_shared<Cone>(yellow_material);
 	cone1->transform(glm::translate(glm::mat4(1.0f), glm::vec3(5, 9, 14)));
