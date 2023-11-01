@@ -1,10 +1,12 @@
 glm
 .*
-*.ppm
+result.*
 *.png
+*.ppm
 !.git*
 *.o
 main
 meshes/
+frames/
 callgrind*
 memcheck.log

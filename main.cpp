@@ -124,15 +124,22 @@ glm::vec3 tone_mapping(const glm::vec3& intensity)
 /**
  Function defining the scene
  */
-void sceneDefinition()
+void sceneDefinition(int current_frame = 0, int tot_frames = 1)
 {
 	const Material rainbow_material = Material{ glm::vec3(0.07, 0.07, 0.07),
 												glm::vec3(0.7, 0.7, 0.7), glm::vec3(0), 0,
 												rainbowTexture };
 	Sphere* rainbow_sphere = new Sphere(rainbow_material);
-	rainbow_sphere->transform(glm::translate(glm::mat4(1.0f), glm::vec3(-6, 4, 23)));
-	rainbow_sphere->transform(glm::scale(glm::mat4(1.0f), glm::vec3(7)));
-	rainbow_sphere->transform(glm::rotate(glm::mat4(1.0f), glm::radians(92.0f), glm::vec3(0, 1, 0)));
+
+	{
+		const float sphere_y = 4 + 4 * std::abs(std::sin(2 * M_PI * current_frame / tot_frames));
+
+		rainbow_sphere->transform(glm::translate(glm::mat4(1.0f), glm::vec3(-6, sphere_y, 23)));
+		rainbow_sphere->transform(glm::scale(glm::mat4(1.0f), glm::vec3(7)));
+	}
+
+	float radians_step = M_PI / tot_frames;
+	rainbow_sphere->transform(glm::rotate(glm::mat4(1.0f), radians_step * current_frame, glm::vec3(0, 1, 0)));
 	objects.emplace_back(rainbow_sphere);
 
 	const Material red_material = Material{ glm::vec3(0.01, 0.03, 0.03), glm::vec3(1, 0.3, 0.3), glm::vec3(0.5), 10, };
@@ -199,10 +206,12 @@ void sceneDefinition()
 
 int main(int argc, const char* argv[])
 {
+	int current_frame = 0;
+	int tot_frames = 1;
 	if (argc >= 4) // ./main <filename> <current frame> <tot frames>
 	{
-		int current_frame = atoi(argv[2]);
-		int tot_frames = atoi(argv[3]);
+		current_frame = atoi(argv[2]);
+		tot_frames = atoi(argv[3]);
 	}
 	clock_t t = clock(); // variable for keeping the time of the rendering
 
@@ -213,7 +222,7 @@ int main(int argc, const char* argv[])
 	// Compute the size of each pixel given the FOV
 	const float pixelSize = 2.0f * tan(glm::radians(fov / 2.0f)) / width;
 
-	sceneDefinition(); // Let's define the scene
+	sceneDefinition(current_frame, tot_frames); // Let's define the scene
 
 	Image image(width, height); // Create an image where we will store the result
 

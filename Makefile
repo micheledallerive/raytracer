@@ -31,3 +31,20 @@ profile: all
 
 memcheck: all
 	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./main.o 2> memcheck.log
+
+
+# ----------------- Animation -----------------
+TOTAL_FRAMES = 120
+FRAME_RATE = 60
+
+frames_dir:
+	mkdir -p frames
+
+frames/%.ppm: ./main.o
+	./main.o ./frames/$*.ppm $* $(TOTAL_FRAMES)
+
+frames: frames_dir $(addprefix ./frames/, $(addsuffix .png, $(shell seq -w 0 $(TOTAL_FRAMES))))
+
+result.mp4: frames
+	ffmpeg -r $(FRAME_RATE) -i frames/%03d.png -y result.mp4
+
