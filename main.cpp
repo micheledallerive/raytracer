@@ -34,16 +34,6 @@ const glm::vec3 ambient_light(0.001f);
 vector<unique_ptr<Light>> lights; ///< A list of lights in the scene
 vector<shared_ptr<Object>> objects; ///< A list of all objects in the scene
 
-optional<Hit> intersect_towards_light(const glm::vec3& origin, const unique_ptr<Light>& light)
-{
-	const glm::vec3 light_direction = glm::normalize(light->position - origin);
-	const Ray ray = Ray(origin + 0.001f * light_direction, light_direction);
-	const optional<Hit> closest_hit = ray.closest_hit(objects.begin(), objects.end());
-	if (closest_hit && closest_hit->distance < glm::distance(origin, light->position))
-		return closest_hit;
-	return nullopt;
-}
-
 /** Function for computing color of an object according to the Phong Model
  @param point A point belonging to the object for which the color is computed
  @param normal A normal vector the the point
@@ -74,11 +64,12 @@ phong_model(const glm::vec3& point, const glm::vec3& normal, const glm::vec2& uv
 			specular = material.specular * pow(reflection_angle, material.shininess) * light->color;
 		}
 
-		const float distance = max(glm::distance(light->position, point), 0.1f);
-		const float attenuation = 1.0f / (distance * distance);
+		const float light_distance = max(glm::distance(light->position, point), 0.1f);
+		const float attenuation = 1.0f / (light_distance * light_distance);
 
-		const optional<Hit> light_intersection = intersect_towards_light(point, light);
-		const float shadow_factor = light_intersection.has_value() ? 0.0f : 1.0f;
+		const optional<Hit> light_intersection = Ray(point, light_direction)
+			.closest_hit(objects.begin(), objects.end());
+		const float shadow_factor = light_intersection && light_intersection->distance < light_distance ? 0.0f : 1.0f;
 
 		color += attenuation * (diffuse + specular) * shadow_factor;
 	}
@@ -90,23 +81,24 @@ phong_model(const glm::vec3& point, const glm::vec3& normal, const glm::vec2& uv
  @param ray Ray that should be traced through the scene
  @return Color at the intersection point
  */
-glm::vec3 trace_ray(const Ray& ray)
+glm::vec3 trace_ray(const Ray& ray, bool first = true)
 {
-	const optional<Hit> closest_hit = ray.closest_hit(objects.begin(), objects.end());
-	if (closest_hit)
-	{
-		const optional<Material> material = closest_hit->object->getSurfaceSafe<Material>();
-		if (material)
-		{
-			return phong_model(closest_hit->intersection, closest_hit->normal, closest_hit->uv, glm::normalize(-ray
-				.direction), *material);
-		}
-		else
-		{
-			return closest_hit->object->getSurface<glm::vec3>();
-		}
-	}
-	return { VOID_COLOR_RGB };
+	const optional <Hit> closest_hit = ray.closest_hit(objects.begin(), objects.end());
+	if (!closest_hit)
+		return { VOID_COLOR_RGB };
+
+	const optional <Material> material = closest_hit->object->getSurfaceSafe<Material>();
+	if (!material)
+		return closest_hit->object->getSurface<glm::vec3>();
+
+	const glm::vec3 phong = phong_model(closest_hit->intersection, closest_hit->normal, closest_hit
+		->uv, glm::normalize(-ray.direction), *material);
+	if (material->reflection == 0.0f || (!first && glm::length(phong) < 1e-3f))
+		return phong;
+
+	const Ray reflection_ray = Ray(closest_hit->intersection, glm::reflect(ray.direction, closest_hit->normal));
+	const glm::vec3 reflected_color = trace_ray(reflection_ray, false);
+	return (1.0f - material->reflection) * phong + material->reflection * reflected_color;
 }
 
 /**
@@ -148,8 +140,10 @@ void sceneDefinition(int current_frame = 0, int tot_frames = 1)
 	const Material blue_material = Material{ glm::vec3(0.07, 0.07, 0.1), glm::vec3(0.25, 0.25, 1), glm::vec3(0.6),
 											 100 };
 	const Material green_material = Material{ glm::vec3(0.07, 0.09, 0.07), glm::vec3(0.4, 0.9, 0.4), glm::vec3(0), 0 };
+	const Material reflective_blue_material = Material{ glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), glm::vec3(0.6),
+														100, .reflection = 1.0f };
 
-	auto* blue_sphere = new Sphere(blue_material);
+	auto* blue_sphere = new Sphere(reflective_blue_material);
 	blue_sphere->transform(glm::translate(glm::mat4(1.0f), glm::vec3(1, -2, 8)));
 	objects.emplace_back(blue_sphere);
 

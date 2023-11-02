@@ -26,14 +26,15 @@ struct Hit
 class Ray
 {
  public:
-	glm::vec3 origin;    ///< Origin of the ray
-	glm::vec3 direction; ///< Direction of the ray
+	const glm::vec3 origin;    ///< Origin of the ray
+	const glm::vec3 direction; ///< Direction of the ray
 	/**
 	 Contructor of the ray
 	 @param origin Origin of the ray
 	 @param direction Direction of the ray
 	 */
-	Ray(glm::vec3 origin, glm::vec3 direction) : origin(origin), direction(direction)
+	Ray(const glm::vec3& origin, const glm::vec3& direction) : origin(
+		origin + 0.0001f * direction), direction(direction)
 	{
 	}
 

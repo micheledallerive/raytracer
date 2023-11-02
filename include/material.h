@@ -19,4 +19,5 @@ struct Material
 	glm::vec3 specular = glm::vec3(0.0); ///< Specular coefficient
 	float shininess = 0.0; ///< Exponent for Phong model
 	std::function<glm::vec3(glm::vec2)> texture; ///< Texture function (glm::vec3) -> glm::vec2
+	float reflection = 0.0; ///< Reflection coefficient [0, 1]
 };
