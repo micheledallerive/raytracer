@@ -34,6 +34,16 @@ const glm::vec3 ambient_light(0.001f);
 vector<unique_ptr<Light>> lights; ///< A list of lights in the scene
 vector<shared_ptr<Object>> objects; ///< A list of all objects in the scene
 
+optional<Hit> intersect_towards_light(const glm::vec3& origin, const unique_ptr<Light>& light)
+{
+	const glm::vec3 light_direction = glm::normalize(light->position - origin);
+	const Ray ray = Ray(origin + 0.001f * light_direction, light_direction);
+	const optional<Hit> closest_hit = ray.closest_hit(objects.begin(), objects.end());
+	if (closest_hit && closest_hit->distance < glm::distance(origin, light->position))
+		return closest_hit;
+	return nullopt;
+}
+
 /** Function for computing color of an object according to the Phong Model
  @param point A point belonging to the object for which the color is computed
  @param normal A normal vector the the point
@@ -67,7 +77,10 @@ phong_model(const glm::vec3& point, const glm::vec3& normal, const glm::vec2& uv
 		const float distance = max(glm::distance(light->position, point), 0.1f);
 		const float attenuation = 1.0f / (distance * distance);
 
-		color += attenuation * (diffuse + specular);
+		const optional<Hit> light_intersection = intersect_towards_light(point, light);
+		const float shadow_factor = light_intersection.has_value() ? 0.0f : 1.0f;
+
+		color += attenuation * (diffuse + specular) * shadow_factor;
 	}
 	return color;
 }
@@ -79,21 +92,10 @@ phong_model(const glm::vec3& point, const glm::vec3& normal, const glm::vec2& uv
  */
 glm::vec3 trace_ray(const Ray& ray)
 {
-
-	// hit structure representing the closest intersection
-	optional<Hit> closest_hit;
-
-	// Loop over all objects to find the closest intersection
-	for (auto& object : objects)
-	{
-		optional<Hit> hit = object->intersect(ray);
-		if (hit && (!closest_hit || hit->distance < closest_hit->distance))
-			closest_hit = hit;
-	}
-
+	const optional<Hit> closest_hit = ray.closest_hit(objects.begin(), objects.end());
 	if (closest_hit)
 	{
-		const auto material = closest_hit->object->getSurfaceSafe<Material>();
+		const optional<Material> material = closest_hit->object->getSurfaceSafe<Material>();
 		if (material)
 		{
 			return phong_model(closest_hit->intersection, closest_hit->normal, closest_hit->uv, glm::normalize(-ray

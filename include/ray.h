@@ -5,6 +5,20 @@
 #pragma once
 
 #include "glm/glm.hpp"
+#include <optional>
+
+class Object;
+/**
+ Structure representing the even of hitting an object
+ */
+struct Hit
+{
+	glm::vec3 normal;       ///< Normal vector of the intersected object at the intersection point
+	glm::vec3 intersection; ///< Point of Intersection
+	float distance;         ///< Distance from the origin of the ray to the intersection point
+	Object* object;         ///< A pointer to the intersected object
+	glm::vec2 uv;            ///< Coordinates for computing the texture (texture coordinates)
+};
 
 /**
  Class representing a single ray.
@@ -22,17 +36,17 @@ class Ray
 	Ray(glm::vec3 origin, glm::vec3 direction) : origin(origin), direction(direction)
 	{
 	}
-};
 
-class Object;
-/**
- Structure representing the even of hitting an object
- */
-struct Hit
-{
-	glm::vec3 normal;       ///< Normal vector of the intersected object at the intersection point
-	glm::vec3 intersection; ///< Point of Intersection
-	float distance;         ///< Distance from the origin of the ray to the intersection point
-	Object* object;         ///< A pointer to the intersected object
-	glm::vec2 uv;            ///< Coordinates for computing the texture (texture coordinates)
+	template<class iterator>
+	std::optional<Hit> closest_hit(const iterator& begin, const iterator& end) const
+	{
+		std::optional<Hit> closest_hit;
+		for (auto it = begin; it != end; ++it)
+		{
+			std::optional<Hit> hit = (*it)->intersect(*this);
+			if (hit && (!closest_hit || hit->distance < closest_hit->distance))
+				closest_hit = hit;
+		}
+		return closest_hit;
+	}
 };
