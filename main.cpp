@@ -27,7 +27,7 @@
 
 #define VOID_COLOR_RGB 1, 0, 0
 #define SCENE_Z 1.0f
-#define MAX_RAY_DEPTH 5
+#define MAX_RAY_DEPTH 10
 
 using namespace std;
 
@@ -79,12 +79,24 @@ phong_model(const glm::vec3& point, const glm::vec3& normal, const glm::vec2& uv
 }
 
 /**
+ * Function for computing the fresnel factor
+ *
+ * The fresnel factor is approximated using the Schlick's approximation (https://en.wikipedia.org/wiki/Schlick%27s_approximation)
+ */
+float fresnel(const glm::vec3& normal, const glm::vec3& view_direction, const float n1, const float n2)
+{
+	const float cos_theta = glm::dot(normal, view_direction);
+	const float R0 = pow((n1 - n2) / (n1 + n2), 2);
+	return R0 + (1 - R0) * pow(1 - cos_theta, 5);
+}
+
+/**
  Functions that computes a color along the ray
  @param ray Ray that should be traced through the scene
  @return Color at the intersection point
  */
 glm::vec3
-trace_ray(const Ray& ray, bool first, int depth = 0, float refl_cumulative = 1.0f, float refr_cumulative = 1.0f)
+trace_ray(const Ray& ray, int depth = 0, float refl_cumulative = 1.0f, float refr_cumulative = 1.0f)
 {
 	const optional<Hit> closest_hit = ray.closest_hit(objects.begin(), objects.end());
 	if (!closest_hit)
@@ -103,21 +115,42 @@ trace_ray(const Ray& ray, bool first, int depth = 0, float refl_cumulative = 1.0
 	if (depth >= MAX_RAY_DEPTH)
 		return phong;
 
-	// reflection
-	const float reflection_factor = material->reflection;
-	const Ray reflection_ray = Ray(closest_hit->intersection, glm::reflect(ray.direction, closest_hit->normal));
-	const glm::vec3 reflected_color = trace_ray(reflection_ray, false, depth + 1);
-
-	// refraction
-	const float refraction_factor = material->transparency;
 	const bool inside_object = glm::dot(ray.direction, closest_hit->normal) > 0;
 	const float n1 = inside_object ? material->refractive_index : 1.0f;
 	const float n2 = inside_object ? 1.0f : material->refractive_index;
-	const float n = n1 / n2;
 	const glm::vec3 normal = inside_object ? -closest_hit->normal : closest_hit->normal;
+
+	// If the reflection/refraction coefficients get too small during the recursion, their contribution is negligible.
+	// This check avoids recursion if the material is not transparent/reflective, but also reduces the recursion in the
+	// case of a transparent/reflective material with a low coefficient.
+	const float COEFFICIENT_THRESH = 1e-4f;
+
+	float reflection_factor = material->reflection;
+	float refraction_factor = material->transparency;
+	if (reflection_factor > COEFFICIENT_THRESH && refraction_factor > COEFFICIENT_THRESH)
+	{
+		const float fresnel_factor = fresnel(normal, -ray.direction, n1, n2);
+		reflection_factor *= fresnel_factor;
+		refraction_factor *= 1.0f - fresnel_factor;
+	}
+
+	// reflection
+	const Ray reflection_ray = Ray(closest_hit->intersection, glm::reflect(ray.direction, closest_hit->normal));
+	glm::vec3 reflected_color(0);
+	if (reflection_factor * refl_cumulative > COEFFICIENT_THRESH)
+		reflected_color = trace_ray(reflection_ray,
+			depth + 1, reflection_factor * refl_cumulative, refr_cumulative);
+
+
+	// refraction
+	const float n = n1 / n2;
 	const glm::vec3 refracted_direction = glm::refract(ray.direction, normal, n);
 	const Ray refraction_ray = Ray(closest_hit->intersection, refracted_direction);
-	const glm::vec3 refracted_color = trace_ray(refraction_ray, false, depth + 1);
+
+	glm::vec3 refracted_color(0);
+	if (refraction_factor * refr_cumulative > COEFFICIENT_THRESH)
+		refracted_color = trace_ray(refraction_ray, depth + 1, refl_cumulative,
+			refraction_factor * refr_cumulative);
 
 	return phong + reflection_factor * reflected_color + refraction_factor * refracted_color;
 }
@@ -160,11 +193,11 @@ void sceneDefinition(int current_frame = 0, int tot_frames = 1)
 	const Material blue_material = Material{ glm::vec3(0.07, 0.07, 0.1), glm::vec3(0.25, 0.25, 1), glm::vec3(0.6),
 											 100 };
 	const Material green_material = Material{ glm::vec3(0.07, 0.09, 0.07), glm::vec3(0.4, 0.9, 0.4), glm::vec3(0), 0 };
-	const Material reflective_blue_material = Material{ glm::vec3(0.0f), glm::vec3(0, 0, 0), glm::vec3(0.6),
-														100, .reflection=1.0f };
+	const Material reflective_blue_material = Material{ glm::vec3(0.0f), glm::vec3(0, 0, 0), glm::vec3(0),
+														0, .reflection=1.0f };
 
-	const Material refractive_white_material = Material{ glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0.5),
-														 10, .reflection=0.0f, .refractive_index = 2.0f, .transparency = 1.0f };
+	const Material refractive_white_material = Material{ glm::vec3(0), glm::vec3(0, 0, 0), glm::vec3(0),
+														 0, .reflection=.5f, .refractive_index = 2.0f, .transparency = 1.0f };
 
 	auto* blue_sphere = new Sphere(reflective_blue_material);
 	blue_sphere->transform(glm::translate(glm::mat4(1.0f), glm::vec3(1, -2, 8)));
@@ -265,7 +298,7 @@ int main(int argc, const char* argv[])
 
 			Ray ray(origin, direction); // ray traversal
 
-			image.setPixel(i, j, tone_mapping(trace_ray(ray, 0, 0)));
+			image.setPixel(i, j, tone_mapping(trace_ray(ray, 0)));
 		}
 
 	t = clock() - t;
