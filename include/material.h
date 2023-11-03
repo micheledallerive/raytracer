@@ -20,4 +20,6 @@ struct Material
 	float shininess = 0.0; ///< Exponent for Phong model
 	std::function<glm::vec3(glm::vec2)> texture; ///< Texture function (glm::vec3) -> glm::vec2
 	float reflection = 0.0; ///< Reflection coefficient [0, 1]
+	float refractive_index = 1.0; ///< Refractive index
+	float transparency = 0.0; ///< Transparency coefficient [0, 1]
 };

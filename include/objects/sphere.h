@@ -51,7 +51,8 @@ class Sphere : public Object
 		const glm::vec3 intersection = local_ray.origin + t * local_ray.direction;
 		const glm::vec3 normal = glm::normalize(intersection);
 
-		const auto u = (float)(0.5 + atan2(normal.z, normal.x) / (2 * M_PI));
+
+		const auto u = normal.x != 0 && normal.z != 0 ? (float)(0.5 + atan2(normal.z, normal.x) / (2 * M_PI)) : 0;
 		const auto v = (float)(0.5 + asin(normal.y) / M_PI);
 
 		return this->transformHitToGlobal(Hit{ normal, intersection, t, this, { u, v }}, ray);

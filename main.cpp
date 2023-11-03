@@ -20,12 +20,14 @@
 #include <optional>
 #include <vector>
 #include <memory>
+#include <map>
 #include "include/glm/glm.hpp"
 #include "include/objects/cone.h"
 #include "include/glm/ext/matrix_transform.hpp"
 
-#define VOID_COLOR_RGB 0, 0, 0
+#define VOID_COLOR_RGB 1, 0, 0
 #define SCENE_Z 1.0f
+#define MAX_RAY_DEPTH 5
 
 using namespace std;
 
@@ -81,24 +83,43 @@ phong_model(const glm::vec3& point, const glm::vec3& normal, const glm::vec2& uv
  @param ray Ray that should be traced through the scene
  @return Color at the intersection point
  */
-glm::vec3 trace_ray(const Ray& ray, bool first = true)
+glm::vec3
+trace_ray(const Ray& ray, bool first, int depth = 0, float refl_cumulative = 1.0f, float refr_cumulative = 1.0f)
 {
-	const optional <Hit> closest_hit = ray.closest_hit(objects.begin(), objects.end());
+	const optional<Hit> closest_hit = ray.closest_hit(objects.begin(), objects.end());
 	if (!closest_hit)
 		return { VOID_COLOR_RGB };
 
-	const optional <Material> material = closest_hit->object->getSurfaceSafe<Material>();
+	const array<float, 3> key = { closest_hit->intersection.x, closest_hit->intersection.y,
+								  closest_hit->intersection.z };
+
+	const optional<Material> material = closest_hit->object->getSurfaceSafe<Material>();
 	if (!material)
 		return closest_hit->object->getSurface<glm::vec3>();
 
 	const glm::vec3 phong = phong_model(closest_hit->intersection, closest_hit->normal, closest_hit
 		->uv, glm::normalize(-ray.direction), *material);
-	if (material->reflection == 0.0f || (!first && glm::length(phong) < 1e-3f))
+
+	if (depth >= MAX_RAY_DEPTH)
 		return phong;
 
+	// reflection
+	const float reflection_factor = material->reflection;
 	const Ray reflection_ray = Ray(closest_hit->intersection, glm::reflect(ray.direction, closest_hit->normal));
-	const glm::vec3 reflected_color = trace_ray(reflection_ray, false);
-	return (1.0f - material->reflection) * phong + material->reflection * reflected_color;
+	const glm::vec3 reflected_color = trace_ray(reflection_ray, false, depth + 1);
+
+	// refraction
+	const float refraction_factor = material->transparency;
+	const bool inside_object = glm::dot(ray.direction, closest_hit->normal) > 0;
+	const float n1 = inside_object ? material->refractive_index : 1.0f;
+	const float n2 = inside_object ? 1.0f : material->refractive_index;
+	const float n = n1 / n2;
+	const glm::vec3 normal = inside_object ? -closest_hit->normal : closest_hit->normal;
+	const glm::vec3 refracted_direction = glm::refract(ray.direction, normal, n);
+	const Ray refraction_ray = Ray(closest_hit->intersection, refracted_direction);
+	const glm::vec3 refracted_color = trace_ray(refraction_ray, false, depth + 1);
+
+	return phong + reflection_factor * reflected_color + refraction_factor * refracted_color;
 }
 
 /**
@@ -120,8 +141,7 @@ glm::vec3 tone_mapping(const glm::vec3& intensity)
  */
 void sceneDefinition(int current_frame = 0, int tot_frames = 1)
 {
-	const Material rainbow_material = Material{ glm::vec3(0.07, 0.07, 0.07),
-												glm::vec3(0.7, 0.7, 0.7), glm::vec3(0), 0,
+	const Material rainbow_material = Material{ glm::vec3(0.07, 0.07, 0.07), glm::vec3(0.7, 0.7, 0.7), glm::vec3(0), 0,
 												rainbowTexture };
 	Sphere* rainbow_sphere = new Sphere(rainbow_material);
 
@@ -140,8 +160,11 @@ void sceneDefinition(int current_frame = 0, int tot_frames = 1)
 	const Material blue_material = Material{ glm::vec3(0.07, 0.07, 0.1), glm::vec3(0.25, 0.25, 1), glm::vec3(0.6),
 											 100 };
 	const Material green_material = Material{ glm::vec3(0.07, 0.09, 0.07), glm::vec3(0.4, 0.9, 0.4), glm::vec3(0), 0 };
-	const Material reflective_blue_material = Material{ glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), glm::vec3(0.6),
-														100, .reflection = 1.0f };
+	const Material reflective_blue_material = Material{ glm::vec3(0.0f), glm::vec3(0, 0, 0), glm::vec3(0.6),
+														100, .reflection=1.0f };
+
+	const Material refractive_white_material = Material{ glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0.5),
+														 10, .reflection=0.0f, .refractive_index = 2.0f, .transparency = 1.0f };
 
 	auto* blue_sphere = new Sphere(reflective_blue_material);
 	blue_sphere->transform(glm::translate(glm::mat4(1.0f), glm::vec3(1, -2, 8)));
@@ -173,8 +196,7 @@ void sceneDefinition(int current_frame = 0, int tot_frames = 1)
 	// create a box from -15 to 15 in x coordinate, from -3 to 27 in y and from -0.01 to 30 in z
 
 	const Material yellow_material = Material{ glm::vec3(0.03, 0.03, 0.03), glm::vec3(0.35, 0.35, 0.0f),
-											   glm::vec3(1.0f),
-											   100 };
+											   glm::vec3(1.0f), 100 };
 	auto cone1 = make_shared<Cone>(yellow_material);
 	cone1->transform(glm::translate(glm::mat4(1.0f), glm::vec3(5, 9, 14)));
 	cone1->transform(glm::scale(glm::mat4(1.0f), glm::vec3(3, -12, 3)));
@@ -187,6 +209,11 @@ void sceneDefinition(int current_frame = 0, int tot_frames = 1)
 	cone2->transform(glm::rotate(glm::mat4(1.0f), rotation, glm::vec3(0, 0, 1)));
 	cone2->transform(glm::scale(glm::mat4(1.0f), glm::vec3(1, 3, 1)));
 	objects.push_back(cone2);
+
+	auto* sphere = new Sphere(refractive_white_material);
+	sphere->transform(glm::translate(glm::mat4(1.0f), glm::vec3(-3, -1, 8)));
+	sphere->transform(glm::scale(glm::mat4(1.0f), glm::vec3(2)));
+	objects.emplace_back(sphere);
 
 	objects.emplace_back(new Plane(glm::vec3(-15, 0, 0), glm::vec3(1, 0, 0), red_material));
 	objects.emplace_back(new Plane(glm::vec3(15, 0, 0), glm::vec3(-1, 0, 0), blue_material));
@@ -238,7 +265,7 @@ int main(int argc, const char* argv[])
 
 			Ray ray(origin, direction); // ray traversal
 
-			image.setPixel(i, j, tone_mapping(trace_ray(ray)));
+			image.setPixel(i, j, tone_mapping(trace_ray(ray, 0, 0)));
 		}
 
 	t = clock() - t;
