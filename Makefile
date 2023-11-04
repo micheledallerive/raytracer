@@ -2,10 +2,11 @@ CXX = g++
 CXXFLAGS = -g -std=c++17 -Ofast
 # Create headers variable with all .h files in any subdirectory but in include/glm/
 HEADERS = $(shell find . -name '*.h' -not -path "./include/glm/*")
+DEBUG := 0
+ANIMATE := 0
 
 %.o: %.cpp $(HEADERS)
-	echo $(HEADERS)
-	$(CXX) $(CXXFLAGS) $< -o $@
+	$(CXX) $(CXXFLAGS) -DANIMATE=$(ANIMATE) -DDEBUG=$(DEBUG) $< -o $@
 
 %.png: %.ppm
 	convert $< $@
@@ -34,8 +35,8 @@ memcheck: all
 
 
 # ----------------- Animation -----------------
-TOTAL_FRAMES = 120
-FRAME_RATE = 60
+TOTAL_FRAMES = 240
+FRAME_RATE = 40
 
 frames_dir:
 	mkdir -p frames
@@ -45,6 +46,7 @@ frames/%.ppm: ./main.o
 
 frames: frames_dir $(addprefix ./frames/, $(addsuffix .png, $(shell seq -w 0 $(TOTAL_FRAMES))))
 
+result.mp4: ANIMATE := 1
 result.mp4: frames
 	ffmpeg -r $(FRAME_RATE) -i frames/%03d.png -y result.mp4
 

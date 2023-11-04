@@ -45,7 +45,7 @@ class Object
 				 glm::normalize(glm::vec3(inverseTransformationMatrix * glm::vec4(ray.direction, 0))) };
 	}
  public:
-	Object() : surface(glm::vec3(1.0))
+	Object() : surface(Material())
 	{
 	}
 

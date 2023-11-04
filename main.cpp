@@ -24,6 +24,7 @@
 #include "include/glm/glm.hpp"
 #include "include/objects/cone.h"
 #include "include/glm/ext/matrix_transform.hpp"
+#include "include/animation.h"
 
 #define VOID_COLOR_RGB 1, 0, 0
 #define SCENE_Z 1.0f
@@ -95,8 +96,7 @@ float fresnel(const glm::vec3& normal, const glm::vec3& view_direction, const fl
  @param ray Ray that should be traced through the scene
  @return Color at the intersection point
  */
-glm::vec3
-trace_ray(const Ray& ray, int depth = 0, float refl_cumulative = 1.0f, float refr_cumulative = 1.0f)
+glm::vec3 trace_ray(const Ray& ray, int depth = 0, float refl_cumulative = 1.0f, float refr_cumulative = 1.0f)
 {
 	const optional<Hit> closest_hit = ray.closest_hit(objects.begin(), objects.end());
 	if (!closest_hit)
@@ -138,8 +138,7 @@ trace_ray(const Ray& ray, int depth = 0, float refl_cumulative = 1.0f, float ref
 	const Ray reflection_ray = Ray(closest_hit->intersection, glm::reflect(ray.direction, closest_hit->normal));
 	glm::vec3 reflected_color(0);
 	if (reflection_factor * refl_cumulative > COEFFICIENT_THRESH)
-		reflected_color = trace_ray(reflection_ray,
-			depth + 1, reflection_factor * refl_cumulative, refr_cumulative);
+		reflected_color = trace_ray(reflection_ray, depth + 1, reflection_factor * refl_cumulative, refr_cumulative);
 
 
 	// refraction
@@ -149,8 +148,7 @@ trace_ray(const Ray& ray, int depth = 0, float refl_cumulative = 1.0f, float ref
 
 	glm::vec3 refracted_color(0);
 	if (refraction_factor * refr_cumulative > COEFFICIENT_THRESH)
-		refracted_color = trace_ray(refraction_ray, depth + 1, refl_cumulative,
-			refraction_factor * refr_cumulative);
+		refracted_color = trace_ray(refraction_ray, depth + 1, refl_cumulative, refraction_factor * refr_cumulative);
 
 	return phong + reflection_factor * reflected_color + refraction_factor * refracted_color;
 }
@@ -174,87 +172,68 @@ glm::vec3 tone_mapping(const glm::vec3& intensity)
  */
 void sceneDefinition(int current_frame = 0, int tot_frames = 1)
 {
+	const float step_size = 6.0f / tot_frames;
+	const float step = step_size * current_frame;
+
 	const Material rainbow_material = Material{ glm::vec3(0.07, 0.07, 0.07), glm::vec3(0.7, 0.7, 0.7), glm::vec3(0), 0,
 												rainbowTexture };
 	Sphere* rainbow_sphere = new Sphere(rainbow_material);
 
-	{
-		const float sphere_y = 4 + 4 * std::abs(std::sin(2 * M_PI * current_frame / tot_frames));
-
-		rainbow_sphere->transform(glm::translate(glm::mat4(1.0f), glm::vec3(-6, sphere_y, 23)));
-		rainbow_sphere->transform(glm::scale(glm::mat4(1.0f), glm::vec3(7)));
-	}
-
-	float radians_step = M_PI / tot_frames;
-	rainbow_sphere->transform(glm::rotate(glm::mat4(1.0f), radians_step * current_frame, glm::vec3(0, 1, 0)));
+	rainbow_sphere->transform(glm::translate(glm::mat4(1.0f), glm::vec3(-6, 4, 23)));
+	rainbow_sphere->transform(glm::scale(glm::mat4(1.0f), glm::vec3(7)));
 	objects.emplace_back(rainbow_sphere);
 
-	const Material red_material = Material{ glm::vec3(0.01, 0.03, 0.03), glm::vec3(1, 0.3, 0.3), glm::vec3(0.5), 10, };
-	const Material blue_material = Material{ glm::vec3(0.07, 0.07, 0.1), glm::vec3(0.25, 0.25, 1), glm::vec3(0.6),
-											 100 };
-	const Material green_material = Material{ glm::vec3(0.07, 0.09, 0.07), glm::vec3(0.4, 0.9, 0.4), glm::vec3(0), 0 };
+	const Material green_diffuse{ .ambient = glm::vec3(0.03f, 0.1f, 0.03f), .diffuse = glm::vec3(0.3f, 1.0f, 0.3f), };
+
+	const Material red_specular{ .ambient = glm::vec3(0.01f, 0.02f, 0.02f), .diffuse = glm::vec3(1.0f, 0.05f, 0.05f), };
+
+	const Material blue_specular{ .ambient = glm::vec3(0.02f, 0.02f, 0.1f), .diffuse = glm::vec3(0.2f, 0.2f, 1.0f), .specular = glm::vec3(0.6), .shininess = 100.0 };
+
 	const Material reflective_blue_material = Material{ glm::vec3(0.0f), glm::vec3(0, 0, 0), glm::vec3(0),
 														0, .reflection=1.0f };
 
 	const Material refractive_white_material = Material{ glm::vec3(0), glm::vec3(0, 0, 0), glm::vec3(0),
 														 0, .reflection=.5f, .refractive_index = 2.0f, .transparency = 1.0f };
 
-	auto* blue_sphere = new Sphere(reflective_blue_material);
+	auto* blue_sphere = new Sphere(blue_specular);
 	blue_sphere->transform(glm::translate(glm::mat4(1.0f), glm::vec3(1, -2, 8)));
 	objects.emplace_back(blue_sphere);
 
-//	objects.emplace_back(new Sphere(0.5, glm::vec3(-1, -2.5, 6), red_material));
-	auto* red_sphere = new Sphere(red_material);
+	auto* red_sphere = new Sphere(red_specular);
 	red_sphere->transform(glm::translate(glm::mat4(1.0f), glm::vec3(-1, -2.5, 6)));
 	red_sphere->transform(glm::scale(glm::mat4(1.0f), glm::vec3(0.5)));
 	objects.emplace_back(red_sphere);
 
-	auto* green_sphere = new Sphere(green_material);
+	auto* green_sphere = new Sphere(green_diffuse);
 	green_sphere->transform(glm::translate(glm::mat4(1.0f), glm::vec3(3, -2, 6)));
-//	objects.emplace_back(green_sphere);
+	objects.emplace_back(green_sphere);
 
-	const Material white_material = Material{ glm::vec3(0.07, 0.07, 0.07), glm::vec3(0.7, 0.7, 0.7), glm::vec3(0.5),
-											  10 };
+	auto* refractive_sphere = new Sphere(refractive_white_material);
+	refractive_sphere
+		->transform(glm::translate(glm::mat4(1.0f), glm::vec3(-3, jumping_ball_position(-1, 4, step, -1), 8)));
+	refractive_sphere->transform(glm::scale(glm::mat4(1.0f), glm::vec3(2)));
+	objects.emplace_back(refractive_sphere);
 
-//	objects
-//		.emplace_back(MeshLoader::load(MeshType::OBJ, "./meshes/bunny.obj", { 0, -3, 7 }, white_material));
-//	objects.emplace_back(MeshLoader::load(MeshType::OBJ, "./meshes/armadillo.obj", { -4, -3,
-//																								  10 }, white_material));
-//	objects
-//		.emplace_back(MeshLoader::load(MeshType::OBJ, "./meshes/lucy.obj", { 4, -3, 10 }, white_material));
+	auto* reflective_sphere = new Sphere(reflective_blue_material);
+	reflective_sphere
+		->transform(glm::translate(glm::mat4(1.0f), glm::vec3(5, jumping_ball_position(1, 4, step, 4), 14)));
+	reflective_sphere->transform(glm::scale(glm::mat4(1.0f), 4.0f * jumping_ball_scale(1, 4, step, 4, step_size)));
+	objects.emplace_back(reflective_sphere);
 
-//	objects.emplace_back(new Triangle({ 3.6, 2.945824, 8.535236 }, { 3.9, 2.957204, 8.467452 }, { 4.7,
-//																								  2.345807,
-//																								  8.464094 }, blue_material));
-	// create a box from -15 to 15 in x coordinate, from -3 to 27 in y and from -0.01 to 30 in z
 
-	const Material yellow_material = Material{ glm::vec3(0.03, 0.03, 0.03), glm::vec3(0.35, 0.35, 0.0f),
-											   glm::vec3(1.0f), 100 };
-	auto cone1 = make_shared<Cone>(yellow_material);
-	cone1->transform(glm::translate(glm::mat4(1.0f), glm::vec3(5, 9, 14)));
-	cone1->transform(glm::scale(glm::mat4(1.0f), glm::vec3(3, -12, 3)));
-	objects.push_back(cone1);
+	// ========= PLANES =========
 
-	auto cone2 = make_shared<Cone>(green_material);
-	cone2->transform(glm::translate(glm::mat4(1.0f), glm::vec3(6, -3, 7)));
+	const Material red_diffuse{ .ambient = glm::vec3(0.09f, 0.06f, 0.06f), .diffuse = glm::vec3(0.9f, 0.6f, 0.6f), };
+	const Material blue_diffuse{ .ambient = glm::vec3(0.06f, 0.06f, 0.09f), .diffuse = glm::vec3(0.6f, 0.6f, 0.9f), };
 
-	const float rotation = std::acos(1.0f / std::sqrt(10.0f));
-	cone2->transform(glm::rotate(glm::mat4(1.0f), rotation, glm::vec3(0, 0, 1)));
-	cone2->transform(glm::scale(glm::mat4(1.0f), glm::vec3(1, 3, 1)));
-	objects.push_back(cone2);
+	objects.emplace_back(new Plane(glm::vec3(0, -3, 0), glm::vec3(0, 1, 0)));
+	objects.emplace_back(new Plane(glm::vec3(0, 0, 30), glm::vec3(0, 0, -1), green_diffuse));
+	objects.emplace_back(new Plane(glm::vec3(-15, 0, 0), glm::vec3(1, 0, 0), red_diffuse));
+	objects.emplace_back(new Plane(glm::vec3(15, 0, 0), glm::vec3(-1, 0, 0), blue_diffuse));
+	objects.emplace_back(new Plane(glm::vec3(0, 27, 0), glm::vec3(0, -1, 0)));
+	objects.emplace_back(new Plane(glm::vec3(0, 0, -0.01), glm::vec3(0, 0, 1), green_diffuse));
 
-	auto* sphere = new Sphere(refractive_white_material);
-	sphere->transform(glm::translate(glm::mat4(1.0f), glm::vec3(-3, -1, 8)));
-	sphere->transform(glm::scale(glm::mat4(1.0f), glm::vec3(2)));
-	objects.emplace_back(sphere);
-
-	objects.emplace_back(new Plane(glm::vec3(-15, 0, 0), glm::vec3(1, 0, 0), red_material));
-	objects.emplace_back(new Plane(glm::vec3(15, 0, 0), glm::vec3(-1, 0, 0), blue_material));
-	objects.emplace_back(new Plane(glm::vec3(0, -3, 0), glm::vec3(0, 1, 0), white_material));
-	objects.emplace_back(new Plane(glm::vec3(0, 27, 0), glm::vec3(0, -1, 0), blue_material));
-	objects.emplace_back(new Plane(glm::vec3(0, 0, -0.01), glm::vec3(0, 0, 1), green_material));
-	objects.emplace_back(new Plane(glm::vec3(0, 0, 30), glm::vec3(0, 0, -1), green_material));
-
+	// ========= LIGHTS =========
 	lights.emplace_back(new Light(glm::vec3(0, 26, 5), glm::vec3(1.0f)));
 	lights.emplace_back(new Light(glm::vec3(0, 1, 12), glm::vec3(0.1f)));
 	lights.emplace_back(new Light(glm::vec3(0, 5, 1), glm::vec3(0.4f)));
@@ -271,8 +250,13 @@ int main(int argc, const char* argv[])
 	}
 	clock_t t = clock(); // variable for keeping the time of the rendering
 
+#if DEBUG
+	int width = 256; // width of the image
+	int height = 192; // height of the image
+#else
 	int width = 1024; // width of the image
 	int height = 768; // height of the image
+#endif
 	float fov = 90;   // field of view
 
 	// Compute the size of each pixel given the FOV
