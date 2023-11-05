@@ -102,9 +102,6 @@ glm::vec3 trace_ray(const Ray& ray, int depth = 0, float refl_cumulative = 1.0f,
 	if (!closest_hit)
 		return { VOID_COLOR_RGB };
 
-	const array<float, 3> key = { closest_hit->intersection.x, closest_hit->intersection.y,
-								  closest_hit->intersection.z };
-
 	const optional<Material> material = closest_hit->object->getSurfaceSafe<Material>();
 	if (!material)
 		return closest_hit->object->getSurface<glm::vec3>();
@@ -127,10 +124,13 @@ glm::vec3 trace_ray(const Ray& ray, int depth = 0, float refl_cumulative = 1.0f,
 
 	float reflection_factor = material->reflection;
 	float refraction_factor = material->transparency;
-	if (reflection_factor > COEFFICIENT_THRESH && refraction_factor > COEFFICIENT_THRESH)
+	if (refraction_factor > COEFFICIENT_THRESH)
 	{
 		const float fresnel_factor = fresnel(normal, -ray.direction, n1, n2);
-		reflection_factor *= fresnel_factor;
+		if (reflection_factor > COEFFICIENT_THRESH)
+			reflection_factor *= fresnel_factor;
+		else
+			reflection_factor = fresnel_factor;
 		refraction_factor *= 1.0f - fresnel_factor;
 	}
 
@@ -189,11 +189,11 @@ void sceneDefinition(int current_frame = 0, int tot_frames = 1)
 
 	const Material blue_specular{ .ambient = glm::vec3(0.02f, 0.02f, 0.1f), .diffuse = glm::vec3(0.2f, 0.2f, 1.0f), .specular = glm::vec3(0.6), .shininess = 100.0 };
 
-	const Material reflective_blue_material = Material{ glm::vec3(0.0f), glm::vec3(0, 0, 0), glm::vec3(0),
-														0, .reflection=1.0f };
+	const Material reflective_material = Material{ glm::vec3(0.0f), glm::vec3(0, 0, 0), glm::vec3(0),
+												   0, .reflection=1.0f };
 
-	const Material refractive_white_material = Material{ glm::vec3(0), glm::vec3(0, 0, 0), glm::vec3(0),
-														 0, .reflection=.5f, .refractive_index = 2.0f, .transparency = 1.0f };
+	const Material refractive_material = Material{ glm::vec3(0), glm::vec3(0, 0, 0), glm::vec3(0),
+												   0, .refractive_index = 2.0f, .transparency = 1.0f };
 
 	auto* blue_sphere = new Sphere(blue_specular);
 	blue_sphere->transform(glm::translate(glm::mat4(1.0f), glm::vec3(1, -2, 8)));
@@ -208,13 +208,13 @@ void sceneDefinition(int current_frame = 0, int tot_frames = 1)
 	green_sphere->transform(glm::translate(glm::mat4(1.0f), glm::vec3(3, -2, 6)));
 	objects.emplace_back(green_sphere);
 
-	auto* refractive_sphere = new Sphere(refractive_white_material);
+	auto* refractive_sphere = new Sphere(refractive_material);
 	refractive_sphere
 		->transform(glm::translate(glm::mat4(1.0f), glm::vec3(-3, jumping_ball_position(-1, 4, step, -1), 8)));
 	refractive_sphere->transform(glm::scale(glm::mat4(1.0f), glm::vec3(2)));
 	objects.emplace_back(refractive_sphere);
 
-	auto* reflective_sphere = new Sphere(reflective_blue_material);
+	auto* reflective_sphere = new Sphere(reflective_material);
 	reflective_sphere
 		->transform(glm::translate(glm::mat4(1.0f), glm::vec3(5, jumping_ball_position(1, 4, step, 4), 14)));
 	reflective_sphere->transform(glm::scale(glm::mat4(1.0f), 4.0f * jumping_ball_scale(1, 4, step, 4, step_size)));
