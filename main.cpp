@@ -37,6 +37,30 @@ const glm::vec3 ambient_light(0.001f);
 vector<unique_ptr<Light>> lights; ///< A list of lights in the scene
 vector<shared_ptr<Object>> objects; ///< A list of all objects in the scene
 
+float shadow(const glm::vec3& point, const glm::vec3& direction, const float light_distance)
+{
+	const optional<Hit> closest_hit = Ray(point, direction).closest_hit(objects.begin(), objects.end());
+	if (!closest_hit)
+		return 1;
+
+	const optional<Material> material = closest_hit->object->getSurfaceSafe<Material>();
+	if (!material)
+		return 1;
+
+	const bool transparent = material->transparency > 0;
+	if (!transparent)
+		return closest_hit->distance < light_distance ? 0 : 1;
+
+	const float n1 = glm::dot(direction, closest_hit->normal) > 0 ? material->refractive_index : 1.0f;
+	const float n2 = glm::dot(direction, closest_hit->normal) > 0 ? 1.0f : material->refractive_index;
+	const float n = n1 / n2;
+	const glm::vec3 refracted_direction = glm::refract(direction, closest_hit->normal, n);
+	const Ray refraction_ray = Ray(closest_hit->intersection, refracted_direction);
+
+	const float refracted_color = shadow(closest_hit->intersection, refracted_direction, light_distance);
+	return material->transparency * refracted_color;
+}
+
 /** Function for computing color of an object according to the Phong Model
  @param point A point belonging to the object for which the color is computed
  @param normal A normal vector the the point
@@ -70,9 +94,7 @@ phong_model(const glm::vec3& point, const glm::vec3& normal, const glm::vec2& uv
 		const float light_distance = max(glm::distance(light->position, point), 0.1f);
 		const float attenuation = 1.0f / (light_distance * light_distance);
 
-		const optional<Hit> light_intersection = Ray(point, light_direction)
-			.closest_hit(objects.begin(), objects.end());
-		const float shadow_factor = light_intersection && light_intersection->distance < light_distance ? 0.0f : 1.0f;
+		const float shadow_factor = shadow(point, light_direction, light_distance);
 
 		color += attenuation * (diffuse + specular) * shadow_factor;
 	}
@@ -193,7 +215,7 @@ void sceneDefinition(int current_frame = 0, int tot_frames = 1)
 												   0, .reflection=1.0f };
 
 	const Material refractive_material = Material{ glm::vec3(0), glm::vec3(0, 0, 0), glm::vec3(0),
-												   0, .refractive_index = 2.0f, .transparency = 1.0f };
+												   0, .refractive_index = 2.0f, .transparency = .96f };
 
 	auto* blue_sphere = new Sphere(blue_specular);
 	blue_sphere->transform(glm::translate(glm::mat4(1.0f), glm::vec3(1, -2, 8)));

@@ -35,7 +35,7 @@ memcheck: all
 
 
 # ----------------- Animation -----------------
-TOTAL_FRAMES = 240
+TOTAL_FRAMES = 200
 FRAME_RATE = 40
 
 frames_dir:
