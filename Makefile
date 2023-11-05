@@ -46,6 +46,9 @@ frames/%.ppm: ./main.o
 
 frames: frames_dir $(addprefix ./frames/, $(addsuffix .png, $(shell seq -w 0 $(TOTAL_FRAMES))))
 
+animationclean:
+	rm -rf frames
+
 result.mp4: ANIMATE := 1
 result.mp4: frames
 	ffmpeg -r $(FRAME_RATE) -i frames/%03d.png -y result.mp4

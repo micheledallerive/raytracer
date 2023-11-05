@@ -23,4 +23,13 @@ std::optional<T> compare_non_empty(const std::optional<T>& a, const std::optiona
 		return std::nullopt;
 }
 
+/**
+ * Provide a ostream operator for glm::vec3
+ */
+std::ostream& operator<<(std::ostream& os, const glm::vec3& vec)
+{
+	os << "(" << vec.x << ", " << vec.y << ", " << vec.z << ")";
+	return os;
+}
+
 #endif //_UTILS_H_
