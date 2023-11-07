@@ -5,18 +5,19 @@ HEADERS = $(shell find ./include -name '*.h' -not -path "./include/glm/*")
 # Create objects variable with all .o files in src/
 OBJECTS = $(patsubst %.cpp, %.o, $(shell find ./src -name '*.cpp')) main.o
 EXECUTABLE = main
+LIBS = -I./include -L/usr/local/lib -L/usr/include/c++/11/ -L/usr/include/x86_64-linux-gnu/c++/11/
 
 DEBUG := 0
 ANIMATE := 0
 
 %.o: %.cpp $(HEADERS)
-	$(CXX) $(CXXFLAGS) -DANIMATE=$(ANIMATE) -DDEBUG=$(DEBUG) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(LIBS) -DANIMATE=$(ANIMATE) -DDEBUG=$(DEBUG) -c $< -o $@
 
 %.png: %.ppm
 	convert $< $@
 
 all: $(OBJECTS)
-	$(CXX) $(CXXFLAGS) $(OBJECTS) -o $(EXECUTABLE)
+	$(CXX) $(CXXFLAGS) $(LIBS) $(OBJECTS) -o $(EXECUTABLE)
 
 run: all
 	./$(EXECUTABLE)

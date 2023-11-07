@@ -1,5 +1,5 @@
-#include "../include/glm/glm.hpp"
-#include "../include/light.h"
+#include "glm/glm.hpp"
+#include "light.h"
 
 Light::Light(glm::vec3 position) : position(position), color(glm::vec3(1.0))
 {

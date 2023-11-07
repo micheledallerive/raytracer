@@ -1,7 +1,7 @@
 #include <string>
 #include <fstream>
 #include <array>
-#include "../include/mesh-loader.h"
+#include "mesh-loader.h"
 
 template<const int N>
 std::array<std::string, N> OBJMeshLoader::parse_tokens(const std::string& s, const std::string& delim)

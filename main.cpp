@@ -4,15 +4,15 @@
 
 #define USE_BOUNDING_SPHERE 1
 
-#include "include/image.h"
-#include "include/material.h"
-#include "include/ray.h"
-#include "include/objects/object.h"
-#include "include/objects/plane.h"
-#include "include/objects/mesh.h"
-#include "include/light.h"
-#include "include/textures.h"
-#include "include/mesh-loader.h"
+#include "image.h"
+#include "material.h"
+#include "ray.h"
+#include "objects/object.h"
+#include "objects/plane.h"
+#include "objects/mesh.h"
+#include "light.h"
+#include "textures.h"
+#include "mesh-loader.h"
 
 #include <cmath>
 #include <ctime>
@@ -21,10 +21,10 @@
 #include <vector>
 #include <memory>
 #include <map>
-#include "include/glm/glm.hpp"
-#include "include/objects/cone.h"
-#include "include/glm/ext/matrix_transform.hpp"
-#include "include/animation.h"
+#include "glm/glm.hpp"
+#include "objects/cone.h"
+#include "glm/ext/matrix_transform.hpp"
+#include "animation.h"
 
 #define VOID_COLOR_RGB 1, 0, 0
 #define SCENE_Z 1.0f

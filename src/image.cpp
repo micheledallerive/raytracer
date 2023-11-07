@@ -1,5 +1,5 @@
-#include "../include/image.h"
-#include "../include/glm/glm.hpp"
+#include "image.h"
+#include "glm/glm.hpp"
 Image::Image(const int width, const int height)
 	: width(width), height(height), data(width, std::vector<glm::vec3>(height))
 {

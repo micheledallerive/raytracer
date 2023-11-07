@@ -2,8 +2,8 @@
 #define ANIMATE 0
 #endif
 
-#include "../include/glm/glm.hpp"
-#include "../include/animation.h"
+#include "glm/glm.hpp"
+#include "animation.h"
 
 #if ANIMATE
 float jumping_ball_position(float base_height, float max_height, float t, float sphere_radius)

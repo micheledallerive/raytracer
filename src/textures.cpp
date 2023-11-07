@@ -1,5 +1,5 @@
-#include "../include/textures.h"
-#include "../include/glm/glm.hpp"
+#include "textures.h"
+#include "glm/glm.hpp"
 #include <vector>
 #include <functional>
 #include <fstream>
