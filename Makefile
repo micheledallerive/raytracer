@@ -1,24 +1,29 @@
 CXX = g++
 CXXFLAGS = -g -std=c++17 -Ofast
 # Create headers variable with all .h files in any subdirectory but in include/glm/
-HEADERS = $(shell find . -name '*.h' -not -path "./include/glm/*")
+HEADERS = $(shell find ./include -name '*.h' -not -path "./include/glm/*")
+# Create objects variable with all .o files in src/
+OBJECTS = $(patsubst %.cpp, %.o, $(shell find ./src -name '*.cpp')) main.o
+EXECUTABLE = main
+
 DEBUG := 0
 ANIMATE := 0
 
 %.o: %.cpp $(HEADERS)
-	$(CXX) $(CXXFLAGS) -DANIMATE=$(ANIMATE) -DDEBUG=$(DEBUG) $< -o $@
+	$(CXX) $(CXXFLAGS) -DANIMATE=$(ANIMATE) -DDEBUG=$(DEBUG) -c $< -o $@
 
 %.png: %.ppm
 	convert $< $@
 
-all: main.o
+all: $(OBJECTS)
+	$(CXX) $(CXXFLAGS) $(OBJECTS) -o $(EXECUTABLE)
 
 run: all
-	./main.o
+	./$(EXECUTABLE)
 	make result.png
 
 clean:
-	rm -f *.o
+	rm -f **/*.o
 
 # watch continuously the file main.cpp, when there is a change call make run
 dev:
@@ -26,12 +31,12 @@ dev:
 
 profile: all
 	rm -f callgrind.out.*
-	valgrind --tool=callgrind ./main.o
+	valgrind --tool=callgrind $(EXECUTABLE)
 	# graphically display the call graph
 	kcachegrind callgrind.out.*
 
 memcheck: all
-	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./main.o 2> memcheck.log
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose $(EXECUTABLE) 2> memcheck.log
 
 
 # ----------------- Animation -----------------
@@ -41,8 +46,8 @@ FRAME_RATE = 40
 frames_dir:
 	mkdir -p frames
 
-frames/%.ppm: ./main.o
-	./main.o ./frames/$*.ppm $* $(TOTAL_FRAMES)
+frames/%.ppm: all
+	./$(EXECUTABLE) ./frames/$*.ppm $* $(TOTAL_FRAMES)
 
 frames: frames_dir $(addprefix ./frames/, $(addsuffix .png, $(shell seq -w 0 $(TOTAL_FRAMES))))
 

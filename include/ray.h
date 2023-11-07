@@ -1,7 +1,3 @@
-//
-// Created by michele on 17.10.23.
-//
-
 #pragma once
 
 #include "glm/glm.hpp"
@@ -33,21 +29,17 @@ class Ray
 	 @param origin Origin of the ray
 	 @param direction Direction of the ray
 	 */
-	Ray(const glm::vec3& origin, const glm::vec3& direction) : origin(
-		origin + 0.0001f * direction), direction(direction)
-	{
-	}
+	Ray(const glm::vec3& origin, const glm::vec3& direction);
 
-	template<class iterator>
-	std::optional<Hit> closest_hit(const iterator& begin, const iterator& end) const
+	template<class iterator> std::optional <Hit> closest_hit(const iterator& begin, const iterator& end) const
 	{
-		std::optional<Hit> closest_hit;
+		std::optional <Hit> _closest_hit;
 		for (auto it = begin; it != end; ++it)
 		{
-			std::optional<Hit> hit = (*it)->intersect(*this);
-			if (hit && (!closest_hit || hit->distance < closest_hit->distance))
-				closest_hit = hit;
+			std::optional <Hit> hit = (*it)->intersect(*this);
+			if (hit && (!_closest_hit || hit->distance < _closest_hit->distance))
+				_closest_hit = hit;
 		}
-		return closest_hit;
+		return _closest_hit;
 	}
 };
