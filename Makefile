@@ -5,7 +5,7 @@ HEADERS = $(shell find ./include -name '*.h' -not -path "./include/glm/*")
 # Create objects variable with all .o files in src/
 OBJECTS = $(patsubst %.cpp, %.o, $(shell find ./src -name '*.cpp')) main.o
 EXECUTABLE = main
-LIBS = -I./include -L/usr/local/lib -L/usr/include/c++/11/ -L/usr/include/x86_64-linux-gnu/c++/11/
+LIBS = -I./include
 
 DEBUG := 0
 ANIMATE := 0

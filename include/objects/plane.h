@@ -5,37 +5,39 @@
 #pragma once
 
 
-#include "object.h"
-#include "../ray.h"
-#include "../material.h"
 #include "../glm/glm.hpp"
+#include "../material.h"
+#include "../ray.h"
+#include "object.h"
 
-class Plane : public Object
+class Plane: public Object
 {
 
- private:
-	glm::vec3 normal;
-	glm::vec3 point;
+private:
+    glm::vec3 normal = glm::vec3(0.0f);
+    glm::vec3 point = glm::vec3(0);
 
- public:
-	Plane(const glm::vec3& point, const glm::vec3& normal) : point(point), normal(normal), Object()
-	{
-	}
-	Plane(const glm::vec3& point, const glm::vec3& normal, const Material& material)
-		: point(point), normal(normal), Object(material)
-	{
-	}
-	std::optional<Hit> intersect(const Ray& ray) override
-	{
-		const float normal_dot = glm::dot(normal, ray.direction);
-		if (normal_dot == 0)
-			return std::nullopt;
+public:
+    Plane(const glm::vec3 &point, const glm::vec3 &normal) : Object(), normal(normal), point(point)
+    {
+    }
 
-		const float t = glm::dot(normal, point - ray.origin) / normal_dot;
-		if (t < 0)
-			return std::nullopt;
+    Plane(const glm::vec3 &point, const glm::vec3 &normal, const Material &material)
+        : Object(material), normal(normal), point(point)
+    {
+    }
 
-		const glm::vec3 intersection = ray.origin + t * ray.direction;
-		return Hit{ normal, intersection, t, this };
-	}
+    std::optional<Hit> intersect(const Ray &ray) override
+    {
+        const float normal_dot = glm::dot(normal, ray.direction);
+        if (normal_dot == 0)
+            return std::nullopt;
+
+        const float t = glm::dot(normal, point - ray.origin) / normal_dot;
+        if (t < 0)
+            return std::nullopt;
+
+        const glm::vec3 intersection = ray.origin + t * ray.direction;
+        return Hit{normal, intersection, t, this};
+    }
 };

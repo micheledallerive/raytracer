@@ -9,52 +9,52 @@
 /**
  Implementation of the class Object for sphere shape.
  */
-class Sphere : public Object
+class Sphere: public Object
 {
- public:
-	/**
+public:
+    /**
 	 The constructor of the sphere
 	 @param color Color of the sphere
 	 */
-	Sphere(const glm::vec3& color)
-		: Object(color)
-	{
-	}
+    Sphere(const glm::vec3 &color)
+        : Object(color)
+    {
+    }
 
-	Sphere(const Material& material)
-		: Object(material)
-	{
-	}
+    Sphere(const Material &material)
+        : Object(material)
+    {
+    }
 
-	/** Implementation of the intersection function */
-	std::optional<Hit> intersect(const Ray& ray) override
-	{
-		const Ray local_ray = this->transformRayToLocal(ray);
-		const float c2 = glm::dot(local_ray.origin, local_ray.origin);
+    /** Implementation of the intersection function */
+    std::optional<Hit> intersect(const Ray &ray) override
+    {
+        const Ray local_ray = this->transformRayToLocal(ray);
+        const float c2 = glm::dot(local_ray.origin, local_ray.origin);
 
-		const float a = glm::dot(-local_ray.origin, local_ray.direction);
-		const float D2 = c2 - a * a;
+        const float a = glm::dot(-local_ray.origin, local_ray.direction);
+        const float D2 = c2 - a * a;
 
-		if (D2 > 1)
-			return std::nullopt;
+        if (D2 > 1)
+            return std::nullopt;
 
-		const float b = std::sqrt(1 - D2);
+        const float b = std::sqrt(1 - D2);
 
-		const float t1 = std::min(a - b, a + b);
-		const float t2 = std::max(a - b, a + b);
+        const float t1 = std::min(a - b, a + b);
+        const float t2 = std::max(a - b, a + b);
 
-		if (t1 < 0 && t2 < 0)
-			return std::nullopt;
+        if (t1 < 0 && t2 < 0)
+            return std::nullopt;
 
-		const float t = t1 < 0 ? t2 : t1;
+        const float t = t1 < 0 ? t2 : t1;
 
-		const glm::vec3 intersection = local_ray.origin + t * local_ray.direction;
-		const glm::vec3 normal = glm::normalize(intersection);
+        const glm::vec3 intersection = local_ray.origin + t * local_ray.direction;
+        const glm::vec3 normal = glm::normalize(intersection);
 
 
-		const auto u = normal.x != 0 && normal.z != 0 ? (float)(0.5 + atan2(normal.z, normal.x) / (2 * M_PI)) : 0;
-		const auto v = (float)(0.5 + asin(normal.y) / M_PI);
+        const auto u = normal.x != 0 && normal.z != 0 ? (float) (0.5 + atan2(normal.z, normal.x) / (2 * M_PI)) : 0;
+        const auto v = (float) (0.5 + asin(normal.y) / M_PI);
 
-		return this->transformHitToGlobal(Hit{ normal, intersection, t, this, { u, v }}, ray);
-	}
+        return this->transformHitToGlobal(Hit{normal, intersection, t, this, {u, v}}, ray);
+    }
 };

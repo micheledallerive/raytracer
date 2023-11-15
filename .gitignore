@@ -1,12 +1,14 @@
 glm
 .*
+!.git*
+!.clang-format
 result.*
 *.png
 *.ppm
-!.git*
 *.o
 main
 meshes/
 frames/
 callgrind*
 memcheck.log
+build/
