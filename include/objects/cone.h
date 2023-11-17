@@ -71,6 +71,14 @@ public:
                                      return h1.distance < h2.distance;
                                  });
     }
+
+protected:
+    Box computeBoundingBox() override
+    {
+        const glm::vec3 min = glm::vec3(-1, 0, -1);
+        const glm::vec3 max = glm::vec3(1, 1, 1);
+        return {coordsToGlobal(min, 1), coordsToGlobal(max, 1)};
+    }
 };
 
 #endif//RAYTRACER_CONE_H

@@ -40,4 +40,10 @@ public:
         const glm::vec3 intersection = ray.origin + t * ray.direction;
         return Hit{normal, intersection, t, this};
     }
+
+protected:
+    Box computeBoundingBox() override
+    {
+        return {glm::vec3(-INFINITY), glm::vec3(INFINITY)};
+    }
 };

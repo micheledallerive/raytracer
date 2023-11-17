@@ -10,6 +10,7 @@
 #include "../glm/glm.hpp"
 #include "../material.h"
 #include "../ray.h"
+#include "box.h"
 
 /**
  General class for the object
@@ -17,9 +18,8 @@
 class Object
 {
 protected:
-    const std::variant<glm::vec3,
-                       Material>
-        surface;///< Surface of the object: either a color (i.e. vec3) or a material
+    const std::variant<glm::vec3, Material> surface;///< Surface of the object: either a color (i.e. vec3) or a material
+    std::optional<Box> boundingBox;           ///< Bounding box of the object
 
     glm::mat4 transformationMatrix = glm::mat4(
         1.0f);///< Matrix representing the transformation from the local to the global coordinate system
@@ -28,25 +28,11 @@ protected:
     glm::mat4 normalMatrix = glm::mat4(
         1.0f);///< Matrix for transforming normal vectors from the local to the global coordinate system
 
-    [[nodiscard]] std::optional<Hit> transformHitToGlobal(const std::optional<Hit> &&hit, const Ray &ray) const
-    {
-        if (hit) {
-            const glm::vec3 globalIntersection = glm::vec3(transformationMatrix * glm::vec4(hit->intersection, 1));
-            return Hit{
-                glm::normalize(glm::vec3(normalMatrix * glm::vec4(hit->normal, 0))),
-                globalIntersection,
-                glm::distance(globalIntersection, ray.origin),
-                hit->object,
-                hit->uv};
-        }
-        return std::nullopt;
-    }
+    [[nodiscard]] std::optional<Hit> transformHitToGlobal(const std::optional<Hit> &&hit, const Ray &ray) const;
+    [[nodiscard]] Ray transformRayToLocal(const Ray &ray) const;
+    [[nodiscard]] glm::vec3 coordsToGlobal(const glm::vec3 &point, float w) const;
 
-    [[nodiscard]] Ray transformRayToLocal(const Ray &ray) const
-    {
-        return {glm::vec3(inverseTransformationMatrix * glm::vec4(ray.origin, 1)),
-                glm::normalize(glm::vec3(inverseTransformationMatrix * glm::vec4(ray.direction, 0)))};
-    }
+    [[nodiscard]] virtual Box computeBoundingBox() = 0;
 
 public:
     virtual ~Object() = default;
@@ -65,6 +51,7 @@ public:
 
     /** A function computing an intersection, which returns the structure Hit */
     virtual std::optional<Hit> intersect(const Ray &ray) = 0;
+    Box &getBoundingBox();
 
     template<typename T>
     std::optional<T> getSurfaceSafe() const

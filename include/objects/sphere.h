@@ -57,4 +57,10 @@ public:
 
         return this->transformHitToGlobal(Hit{normal, intersection, t, this, {u, v}}, ray);
     }
+
+protected:
+    Box computeBoundingBox() override
+    {
+        return {coordsToGlobal(glm::vec3(-1, -1, -1), 1), coordsToGlobal(glm::vec3(1, 1, 1), 1)};
+    }
 };

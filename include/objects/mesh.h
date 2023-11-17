@@ -72,4 +72,28 @@ public:
         }
         return closest_hit;
     }
+
+protected:
+    Box computeBoundingBox() override
+    {
+        auto min = glm::vec3(std::numeric_limits<float>::max());
+        auto max = glm::vec3(std::numeric_limits<float>::min());
+        for (auto &triangle : this->_triangles) {
+            for (auto &point : triangle->points) {
+                if (point.x < min.x)
+                    min.x = point.x;
+                if (point.y < min.y)
+                    min.y = point.y;
+                if (point.z < min.z)
+                    min.z = point.z;
+                if (point.x > max.x)
+                    max.x = point.x;
+                if (point.y > max.y)
+                    max.y = point.y;
+                if (point.z > max.z)
+                    max.z = point.z;
+            }
+        }
+        return {this->coordsToGlobal(min, 1), this->coordsToGlobal(max, 1)};
+    }
 };
