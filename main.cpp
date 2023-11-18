@@ -2,12 +2,10 @@
 @file main.cpp
 */
 
-#define USE_BOUNDING_SPHERE 1
-
 #include "image.h"
 #include "light.h"
+#include "loaders/loader.h"
 #include "material.h"
-#include "mesh-loader.h"
 #include "objects/mesh.h"
 #include "objects/object.h"
 #include "objects/plane.h"
@@ -18,6 +16,7 @@
 #include "animation.h"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/glm.hpp"
+#include "loaders/obj-loader.h"
 #include "objects/cone.h"
 #include <cmath>
 #include <ctime>
@@ -212,6 +211,10 @@ glm::vec3 tone_mapping(const glm::vec3 &intensity)
  */
 void sceneDefinition(int current_frame __maybe_unused = 0, int frame_rate __maybe_unused = 1)
 {
+    Mesh *mesh = OBJMeshLoader().load("../../meshes/bunny_small.obj", Material());
+    mesh->transform(glm::translate(glm::mat4(1.0f), glm::vec3(0, -2, 10)));
+    scene.addObject(mesh);
+
     // ========= PLANES =========
     const Material green_diffuse = MaterialFactory().ambient({0.06f, 0.09f, 0.06f}).diffuse({0.6f, 0.9f, 0.6f}).build();
     const Material red_diffuse = MaterialFactory().ambient({0.09f, 0.06f, 0.06f}).diffuse({0.9f, 0.6f, 0.6f}).build();
@@ -241,6 +244,7 @@ int main(int argc, const char *argv[])
     }
     clock_t t = clock();// variable for keeping the time of the rendering
 
+#define DEBUG 1
 #if DEBUG
     int width = 256; // width of the image
     int height = 192;// height of the image

@@ -1,8 +1,9 @@
-#include "mesh-loader.h"
-#include <array>
-#include <fstream>
-#include <string>
+//
+// Created by michele on 18.11.23.
+//
 
+#include "loaders/obj-loader.h"
+#include <iostream>
 template<const int N>
 std::array<std::string, N> OBJMeshLoader::parse_tokens(const std::string &s, const std::string &delim)
 {
@@ -17,10 +18,13 @@ std::array<std::string, N> OBJMeshLoader::parse_tokens(const std::string &s, con
     return tokens;
 }
 
-std::unique_ptr<Mesh>
-OBJMeshLoader::load(const std::string &file_name, const glm::vec3 &position, const Material &material)
+Mesh *OBJMeshLoader::load(const std::string &file_name, const Material &material)
 {
     std::ifstream in(file_name, std::ios::in);
+    if (!in) {
+        std::cerr << "Cannot open " << file_name << std::endl;
+        exit(1);
+    }
     /*
 	 * OBJ files are composed of:
 	 * - Comments (starting with #)
@@ -45,29 +49,28 @@ OBJMeshLoader::load(const std::string &file_name, const glm::vec3 &position, con
             break;
         }
         case 'v': {
-            std::array<std::string, 4> s_vertex = std::move(parse_tokens<4>(line));
+            std::array<std::string, 4> s_vertex = parse_tokens<4>(line);
 
             std::vector<glm::vec3> &target = line[1] == 'n' ? vertex_normals : vertices;
             target.emplace_back(stof(s_vertex[1]), stof(s_vertex[2]), stof(s_vertex[3]));
             break;
         }
         case 'f': {
-            std::array<std::string, 4> s_face = std::move(parse_tokens<4>(line));
+            std::array<std::string, 4> s_face = parse_tokens<4>(line);
             std::array<glm::vec3, 3> face_vxs{};
             std::array<glm::vec3, 3> face_normals{};
             for (int i = 0; i < 3; ++i) {
                 // Assuming there is no texture indes after the vector index
                 if (!smooth) {
                     int idx = stoi(s_face[i + 1]) - 1;
-                    glm::vec3 vertex = vertices[idx];
-                    face_vxs[i] = vertex + position;
+                    face_vxs[i] = vertices[idx];
                 }
                 else {
                     // face is in the form of "f <idx 1>//<normal idx 1> ..."
                     const auto tokens = parse_tokens<2>(s_face[i + 1], "//");
                     int vidx = stoi(tokens[0]) - 1;
                     int nidx = stoi(tokens[1]) - 1;
-                    face_vxs[i] = vertices[vidx] + position;
+                    face_vxs[i] = vertices[vidx];
                     face_normals[i] = vertex_normals[nidx];
                 }
             }
@@ -87,16 +90,6 @@ OBJMeshLoader::load(const std::string &file_name, const glm::vec3 &position, con
         }
     }
 
-    return std::make_unique<Mesh>(name, position, std::move(triangles));
-}
-
-std::unique_ptr<Mesh> MeshLoader::load(const MeshType &type, const std::string &file_name, const glm::vec3 &position,
-                                       const Material &material)
-{
-    switch (type) {
-    case OBJ:
-        return OBJMeshLoader::load(file_name, position, material);
-    default:
-        throw std::runtime_error("No loader for the specified mesh type");
-    }
+    std::cout << "Mesh: " << name << " loaded with " << triangles.size() << " triangles" << std::endl;
+    return new Mesh(name, std::move(triangles));
 }

@@ -34,3 +34,8 @@ glm::vec3 Object::coordsToGlobal(const glm::vec3 &point, float w = 0) const
 {
     return {transformationMatrix * glm::vec4(point, w)};
 }
+
+glm::vec3 Object::coordsToLocal(const glm::vec3 &point, float w = 0) const
+{
+    return {inverseTransformationMatrix * glm::vec4(point, w)};
+}

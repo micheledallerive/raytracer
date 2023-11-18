@@ -74,10 +74,11 @@ public:
         return std::get<T>(surface);
     }
 
-    void transform(const glm::mat4 &transformation)
+    virtual void transform(const glm::mat4 &transformation)
     {
         transformationMatrix *= transformation;
         inverseTransformationMatrix = glm::inverse(transformationMatrix);
         normalMatrix = glm::transpose(inverseTransformationMatrix);
     }
+    glm::vec3 coordsToLocal(const glm::vec3 &point, float w) const;
 };

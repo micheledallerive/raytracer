@@ -68,15 +68,15 @@ public:
 
     std::optional<Hit> intersect(const Ray &ray) override
     {
-        const std::optional<Hit> plane_hit = Plane(this->points[0], this->normal).intersect(ray);
+        const std::optional<Hit> plane_hit = Plane(coordsToGlobal(this->points[0], 1), coordsToGlobal(this->normal, 0)).intersect(ray);
         if (!plane_hit)
             return plane_hit;
 
-        if (!is_inside(plane_hit->intersection))
+        if (!is_inside(coordsToLocal(plane_hit->intersection, 1)))
             return std::nullopt;
 
         return Hit{
-            compute_hit_normal(plane_hit->intersection),
+            coordsToGlobal(compute_hit_normal(coordsToLocal(plane_hit->intersection, 1)), 0),
             plane_hit->intersection,
             plane_hit->distance,
             this};
