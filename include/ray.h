@@ -29,16 +29,4 @@ public:
 	 @param direction Direction of the ray
 	 */
     Ray(const glm::vec3 &origin, const glm::vec3 &direction);
-
-    template<class iterator>
-    std::optional<Hit> closest_hit(const iterator &begin, const iterator &end) const
-    {
-        std::optional<Hit> _closest_hit;
-        for (auto it = begin; it != end; ++it) {
-            std::optional<Hit> hit = (*it)->intersect(*this);
-            if (hit && (!_closest_hit || hit->distance < _closest_hit->distance))
-                _closest_hit = hit;
-        }
-        return _closest_hit;
-    }
 };

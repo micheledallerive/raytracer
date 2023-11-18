@@ -1,5 +1,8 @@
 #pragma once
 
+#include "glm/glm.hpp"
+#include "ray.h"
+#include <optional>
 class Box
 {
 private:

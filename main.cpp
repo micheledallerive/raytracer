@@ -12,6 +12,7 @@
 #include "objects/object.h"
 #include "objects/plane.h"
 #include "ray.h"
+#include "scene.h"
 #include "textures.h"
 
 #include "animation.h"
@@ -34,13 +35,14 @@ using namespace std;
 
 const glm::vec3 ambient_light(0.001f);
 
-vector<unique_ptr<Light>> lights;  ///< A list of lights in the scene
-vector<shared_ptr<Object>> objects;///< A list of all objects in the scene
+static Scene scene;
 
-float shadow(const glm::vec3 &point, const glm::vec3 &direction, const float light_distance)
+float shadow(const glm::vec3 &point, const glm::vec3 &direction, const float light_distance, int depth = 0)
 {
-    const optional<Hit> closest_hit = Ray(point, direction).closest_hit(objects.begin(), objects.end());
+    const optional<Hit> closest_hit = scene.intersect(Ray(point, direction));
     if (!closest_hit)
+        return 1;
+    if (depth >= MAX_RAY_DEPTH)
         return 1;
 
     const optional<Material> material = closest_hit->object->getSurfaceSafe<Material>();
@@ -56,7 +58,7 @@ float shadow(const glm::vec3 &point, const glm::vec3 &direction, const float lig
     const float n = n1 / n2;
     const glm::vec3 refracted_direction = glm::refract(direction, closest_hit->normal, n);
 
-    const float refracted_color = shadow(closest_hit->intersection, refracted_direction, light_distance);
+    const float refracted_color = shadow(closest_hit->intersection, refracted_direction, light_distance, depth + 1);
     return material->transparency * refracted_color;
 }
 
@@ -71,12 +73,12 @@ phong_model(const glm::vec3 &point, const glm::vec3 &normal, const glm::vec2 &uv
             const Material &material)
 {
     glm::vec3 color = material.ambient * ambient_light;// diffusion
-    for (const auto &light : lights) {
-        const glm::vec3 light_direction = glm::normalize(light->position - point);
+    for (const auto &light : scene.getLights()) {
+        const glm::vec3 light_direction = glm::normalize(light.position - point);
         glm::vec3 diffuse(0);
         const float light_angle = glm::dot(normal, light_direction);
         if (light_angle > 0) {
-            diffuse = material.diffuse * light_angle * light->color;
+            diffuse = material.diffuse * light_angle * light.color;
             if (material.texture)
                 diffuse *= material.texture(uv);
         }
@@ -85,10 +87,10 @@ phong_model(const glm::vec3 &point, const glm::vec3 &normal, const glm::vec2 &uv
         glm::vec3 specular(0);
         const float reflection_angle = glm::dot(reflection_direction, view_direction);
         if (reflection_angle > 0) {
-            specular = material.specular * pow(reflection_angle, material.shininess) * light->color;
+            specular = material.specular * pow(reflection_angle, material.shininess) * light.color;
         }
 
-        const float light_distance = max(glm::distance(light->position, point), 0.1f);
+        const float light_distance = max(glm::distance(light.position, point), 0.1f);
         const float attenuation = 1.0f / (light_distance * light_distance);
 
         const float shadow_factor = shadow(point, light_direction, light_distance);
@@ -133,7 +135,7 @@ bool is_total_internal_reflection(const glm::vec3 &normal, const glm::vec3 &view
  */
 glm::vec3 trace_ray(const Ray &ray, int depth = 0, float refl_cumulative = 1.0f, float refr_cumulative = 1.0f)
 {
-    const optional<Hit> closest_hit = ray.closest_hit(objects.begin(), objects.end());
+    const optional<Hit> closest_hit = scene.intersect(ray);
     if (!closest_hit)
         return {VOID_COLOR_RGB};
 
@@ -215,17 +217,17 @@ void sceneDefinition(int current_frame __maybe_unused = 0, int frame_rate __mayb
     const Material red_diffuse = MaterialFactory().ambient({0.09f, 0.06f, 0.06f}).diffuse({0.9f, 0.6f, 0.6f}).build();
     const Material blue_diffuse = MaterialFactory().ambient({0.06f, 0.06f, 0.09f}).diffuse({0.6f, 0.6f, 0.9f}).build();
 
-    objects.emplace_back(new Plane(glm::vec3(0, -3, 0), glm::vec3(0, 1, 0)));
-    objects.emplace_back(new Plane(glm::vec3(0, 0, 30), glm::vec3(0, 0, -1), green_diffuse));
-    objects.emplace_back(new Plane(glm::vec3(-15, 0, 0), glm::vec3(1, 0, 0), red_diffuse));
-    objects.emplace_back(new Plane(glm::vec3(15, 0, 0), glm::vec3(-1, 0, 0), blue_diffuse));
-    objects.emplace_back(new Plane(glm::vec3(0, 27, 0), glm::vec3(0, -1, 0)));
-    objects.emplace_back(new Plane(glm::vec3(0, 0, -0.01), glm::vec3(0, 0, 1), green_diffuse));
+    scene.addObject(new Plane(glm::vec3(0, -3, 0), glm::vec3(0, 1, 0)));
+    scene.addObject(new Plane(glm::vec3(0, 0, 30), glm::vec3(0, 0, -1), green_diffuse));
+    scene.addObject(new Plane(glm::vec3(-15, 0, 0), glm::vec3(1, 0, 0), red_diffuse));
+    scene.addObject(new Plane(glm::vec3(15, 0, 0), glm::vec3(-1, 0, 0), blue_diffuse));
+    scene.addObject(new Plane(glm::vec3(0, 27, 0), glm::vec3(0, -1, 0)));
+    scene.addObject(new Plane(glm::vec3(0, 0, -0.01), glm::vec3(0, 0, 1), green_diffuse));
 
     // ========= LIGHTS =========
-    lights.emplace_back(new Light(glm::vec3(0, 26, 5), glm::vec3(1.0f)));
-    lights.emplace_back(new Light(glm::vec3(0, 1, 12), glm::vec3(0.1f)));
-    lights.emplace_back(new Light(glm::vec3(0, 5, 1), glm::vec3(0.4f)));
+    scene.addLight(Light(glm::vec3(0, 26, 5), glm::vec3(1.0f)));
+    scene.addLight(Light(glm::vec3(0, 1, 12), glm::vec3(0.1f)));
+    scene.addLight(Light(glm::vec3(0, 5, 1), glm::vec3(0.4f)));
 }
 
 int main(int argc, const char *argv[])

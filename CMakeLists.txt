@@ -9,7 +9,6 @@ set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -Wpedantic -Ofast")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
-
 include_directories("include")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
