@@ -11,32 +11,40 @@
 #include <memory>
 #include <vector>
 
-template<typename T = NaiveTracer, typename = std::enable_if_t<std::is_base_of_v<Tracer, T>>>
+class SceneBuilder
+{
+public:
+    std::vector<Light> lights;
+    std::vector<std::unique_ptr<Object>> objects;
+};
+
 class Scene
 {
 private:
     std::vector<Light> lights;
-    T tracer;
+    std::unique_ptr<Tracer> tracer;
 
 public:
     Scene() : lights(), tracer() {}
     ~Scene() = default;
 
-    template<typename O>
-    void addObject(O object)
+    /**
+     * Setup the scene using the lambda provided.
+     *
+     * @param func a lambda that takes a SceneBuilder as argument and any other custom optional argument
+     */
+    template<typename T>
+    void setup(const std::function<void(SceneBuilder &)> &func)
     {
-        tracer.addObject(object);
-    }
-
-    template<typename L>
-    void addLight(L light)
-    {
-        lights.push_back(std::move(light));
+        SceneBuilder builder;
+        func(builder);
+        lights = std::move(builder.lights);
+        tracer = std::make_unique<T>(builder.objects);
     }
 
     [[nodiscard]] std::optional<Hit> intersect(const Ray &ray) const
     {
-        return tracer.trace(ray);
+        return tracer->trace(ray);
     }
 
     std::vector<Light> &getLights() { return lights; }

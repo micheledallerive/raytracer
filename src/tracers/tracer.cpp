@@ -4,20 +4,11 @@
 
 #include "tracers/tracer.h"
 Tracer::Tracer() : objects() {}
-template<typename T, typename>
-void Tracer::addObject(T &&object)
+
+Tracer::Tracer(std::vector<std::unique_ptr<Object>> &objects) : objects(std::move(objects))
 {
-    objects.emplace_back(object);
 }
-void Tracer::addObject(std::unique_ptr<Object> &&object)
+std::vector<std::unique_ptr<Object>> &Tracer::getObjects()
 {
-    objects.emplace_back(std::move(object));
-}
-void Tracer::addObject(std::unique_ptr<Object> &object)
-{
-    objects.emplace_back(std::move(object));
-}
-void Tracer::addObject(Object *object)
-{
-    objects.emplace_back(object);
+    return objects;
 }

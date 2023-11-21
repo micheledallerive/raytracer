@@ -44,6 +44,6 @@ public:
 protected:
     Box computeBoundingBox() override
     {
-        return {glm::vec3(-INFINITY), glm::vec3(INFINITY)};
+        return Box{-glm::vec3(std::numeric_limits<float>::max()), glm::vec3(std::numeric_limits<float>::max())};
     }
 };

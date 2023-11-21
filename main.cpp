@@ -13,6 +13,8 @@
 #include "scene.h"
 #include "textures.h"
 
+#include "tracers/kdtree.h"
+
 #include "animation.h"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/glm.hpp"
@@ -26,7 +28,7 @@
 #include <optional>
 #include <vector>
 
-#define VOID_COLOR_RGB 1, 0, 0
+#define VOID_COLOR_RGB 0, 0, 0
 #define SCENE_Z 1.0f
 #define MAX_RAY_DEPTH 10
 
@@ -209,55 +211,57 @@ glm::vec3 tone_mapping(const glm::vec3 &intensity)
 /**
  Function defining the scene
  */
-void sceneDefinition(int current_frame __maybe_unused = 0, int frame_rate __maybe_unused = 1)
+void sceneDefinition(SceneBuilder &builder)
 {
-    Mesh *mesh = OBJMeshLoader().load("../../meshes/bunny_small.obj", Material());
-    mesh->transform(glm::translate(glm::mat4(1.0f), glm::vec3(0, -2, 10)));
-    scene.addObject(mesh);
+    Mesh *const bunny = OBJMeshLoader().load("../../meshes/bunny.obj", MaterialFactory().build());
+    bunny->transform(glm::translate(glm::mat4(1.0f), glm::vec3(0, -3, 8)));
+    bunny->initializeTracer();
+    builder.objects.emplace_back(bunny);
 
-    // ========= PLANES =========
-    const Material green_diffuse = MaterialFactory().ambient({0.06f, 0.09f, 0.06f}).diffuse({0.6f, 0.9f, 0.6f}).build();
-    const Material red_diffuse = MaterialFactory().ambient({0.09f, 0.06f, 0.06f}).diffuse({0.9f, 0.6f, 0.6f}).build();
-    const Material blue_diffuse = MaterialFactory().ambient({0.06f, 0.06f, 0.09f}).diffuse({0.6f, 0.6f, 0.9f}).build();
+    Mesh *const armadillo = OBJMeshLoader().load("../../meshes/armadillo.obj", MaterialFactory().build());
+    armadillo->transform(glm::translate(glm::mat4(1.0f), glm::vec3(-4, -3, 10)));
+    armadillo->initializeTracer();
+    builder.objects.emplace_back(armadillo);
 
-    scene.addObject(new Plane(glm::vec3(0, -3, 0), glm::vec3(0, 1, 0)));
-    scene.addObject(new Plane(glm::vec3(0, 0, 30), glm::vec3(0, 0, -1), green_diffuse));
-    scene.addObject(new Plane(glm::vec3(-15, 0, 0), glm::vec3(1, 0, 0), red_diffuse));
-    scene.addObject(new Plane(glm::vec3(15, 0, 0), glm::vec3(-1, 0, 0), blue_diffuse));
-    scene.addObject(new Plane(glm::vec3(0, 27, 0), glm::vec3(0, -1, 0)));
-    scene.addObject(new Plane(glm::vec3(0, 0, -0.01), glm::vec3(0, 0, 1), green_diffuse));
+    Mesh *const lucy = OBJMeshLoader().load("../../meshes/lucy.obj", MaterialFactory().build());
+    lucy->transform(glm::translate(glm::mat4(1.0f), glm::vec3(4, -3, 10)));
+    lucy->initializeTracer();
+    builder.objects.emplace_back(lucy);
+
+    builder.objects.emplace_back(new Plane(glm::vec3(0, -3, 0), glm::vec3(0, 1, 0)));
+    builder.objects.emplace_back(new Plane(glm::vec3(0, 0, 30), glm::vec3(0, 0, -1), Material()));
+    builder.objects.emplace_back(new Plane(glm::vec3(-15, 0, 0), glm::vec3(1, 0, 0), Material()));
+    builder.objects.emplace_back(new Plane(glm::vec3(15, 0, 0), glm::vec3(-1, 0, 0), Material()));
+    builder.objects.emplace_back(new Plane(glm::vec3(0, 27, 0), glm::vec3(0, -1, 0)));
+    builder.objects.emplace_back(new Plane(glm::vec3(0, 0, -0.01), glm::vec3(0, 0, 1), Material()));
 
     // ========= LIGHTS =========
-    scene.addLight(Light(glm::vec3(0, 26, 5), glm::vec3(1.0f)));
-    scene.addLight(Light(glm::vec3(0, 1, 12), glm::vec3(0.1f)));
-    scene.addLight(Light(glm::vec3(0, 5, 1), glm::vec3(0.4f)));
+    builder.lights.emplace_back(glm::vec3(0, 26, 5), glm::vec3(1.0f));
+    builder.lights.emplace_back(glm::vec3(0, 1, 12), glm::vec3(0.1f));
+    builder.lights.emplace_back(glm::vec3(0, 5, 1), glm::vec3(0.4f));
 }
 
 int main(int argc, const char *argv[])
 {
-    int current_frame = 0;
-    int tot_frames = 1;
-    if (argc >= 4)// ./main <filename> <current frame> <tot frames>
-    {
-        current_frame = atoi(argv[2]);
-        tot_frames = atoi(argv[3]);
-    }
     clock_t t = clock();// variable for keeping the time of the rendering
 
-#define DEBUG 1
+#ifndef DEBUG
+#define DEBUG 0
+#endif
+
 #if DEBUG
-    int width = 256; // width of the image
-    int height = 192;// height of the image
+    int width = 512; // width of the image
+    int height = 384;// height of the image
 #else
-    int width = 1024;// width of the image
-    int height = 768;// height of the image
+    int width = 2048;// width of the image
+    int height = 1536;// height of the image
 #endif
     float fov = 90;// field of view
 
     // Compute the size of each pixel given the FOV
     const float pixelSize = 2.0f * tan(glm::radians(fov / 2.0f)) / width;
 
-    sceneDefinition(current_frame, tot_frames);// Let's define the scene
+    scene.setup<NaiveTracer>(sceneDefinition);
 
     Image image(width, height);// Create an image where we will store the result
 

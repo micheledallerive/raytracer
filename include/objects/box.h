@@ -5,14 +5,13 @@
 #include <optional>
 class Box
 {
-private:
-    glm::vec3 min;
-    glm::vec3 max;
-
 public:
+    glm::vec3 min{};
+    glm::vec3 max{};
+
     Box() = default;
 
-    Box(const glm::vec3 &min, const glm::vec3 &max) : min(min), max(max)
+    Box(const glm::vec3 &min, const glm::vec3 &max) : min(glm::min(min, max)), max(glm::max(min, max))
     {
     }
 
@@ -24,6 +23,11 @@ public:
     [[nodiscard]] glm::vec3 getMax() const
     {
         return max;
+    }
+
+    [[nodiscard]] glm::vec3 getCenter() const
+    {
+        return (min + max) * 0.5f;
     }
 
     [[nodiscard]] std::optional<Hit> intersect(const Ray &ray) const
@@ -39,5 +43,23 @@ public:
             return std::nullopt;
         }
         return Hit{glm::vec3(0), glm::vec3(0), tNear, nullptr, glm::vec2(0)};
+    }
+
+    void merge(const Box &box)
+    {
+        min.x = glm::min(min.x, box.min.x);
+        min.y = glm::min(min.y, box.min.y);
+        min.z = glm::min(min.z, box.min.z);
+
+        max.x = glm::max(max.x, box.max.x);
+        max.y = glm::max(max.y, box.max.y);
+        max.z = glm::max(max.z, box.max.z);
+    }
+
+    Box operator+(const Box &box) const
+    {
+        Box newBox;
+        newBox.merge(box);
+        return newBox;
     }
 };

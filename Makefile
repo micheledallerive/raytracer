@@ -7,7 +7,7 @@ OBJECTS = $(patsubst %.cpp, %.o, $(shell find ./src -name '*.cpp')) main.o
 EXECUTABLE = main
 LIBS = -I./include
 
-DEBUG := 0
+DEBUG := 1
 ANIMATE := 0
 
 %.o: %.cpp $(HEADERS)
@@ -32,7 +32,7 @@ dev:
 
 profile: all
 	rm -f callgrind.out.*
-	valgrind --tool=callgrind $(EXECUTABLE)
+	valgrind --tool=callgrind ./$(EXECUTABLE)
 	# graphically display the call graph
 	kcachegrind callgrind.out.*
 

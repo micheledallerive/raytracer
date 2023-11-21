@@ -7,6 +7,8 @@
 #include "../glm/ext/matrix_transform.hpp"
 #include "object.h"
 #include "sphere.h"
+#include "tracers/kdtree.h"
+#include "tracers/naive.h"
 #include "triangle.h"
 #include <array>
 #include <memory>
@@ -15,27 +17,25 @@
 
 class Mesh: public Object
 {
+    using TracerClass = KDTreeTracer;
+
 private:
     std::string _name;
-    std::vector<std::unique_ptr<Triangle>> _triangles;
+    std::unique_ptr<TracerClass> _tracer;
+    std::vector<std::unique_ptr<Object>> _triangles;
 
 public:
     ~Mesh() override = default;
 
-    Mesh(std::string name, std::vector<std::unique_ptr<Triangle>> triangles)
+    Mesh(std::string name, std::vector<std::unique_ptr<Object>> &triangles)
         : _name(std::move(name)), _triangles(std::move(triangles))
     {
     }
 
     std::optional<Hit> intersect(const Ray &ray) override
     {
-        std::optional<Hit> closest_hit = std::nullopt;
-        for (auto &triangle : this->_triangles) {
-            std::optional<Hit> current_hit = triangle->intersect(ray);
-            if (current_hit && (!closest_hit || current_hit->distance < closest_hit->distance))
-                closest_hit = current_hit;
-        }
-        return closest_hit;
+        auto hit = this->_tracer->trace(ray);
+        return hit;
     }
 
     void transform(const glm::mat4 &transformation) override
@@ -45,27 +45,26 @@ public:
         }
     }
 
+    void initializeTracer()
+    {
+        this->_tracer = std::make_unique<TracerClass>(this->_triangles);
+    }
+
 protected:
     Box computeBoundingBox() override
     {
         auto min = glm::vec3(std::numeric_limits<float>::max());
         auto max = glm::vec3(std::numeric_limits<float>::min());
-        for (auto &triangle : this->_triangles) {
-            for (auto &point : triangle->points) {
-                if (point.x < min.x)
-                    min.x = point.x;
-                if (point.y < min.y)
-                    min.y = point.y;
-                if (point.z < min.z)
-                    min.z = point.z;
-                if (point.x > max.x)
-                    max.x = point.x;
-                if (point.y > max.y)
-                    max.y = point.y;
-                if (point.z > max.z)
-                    max.z = point.z;
-            }
+        for (auto &obj : this->_tracer->getObjects()) {
+            auto triangle = dynamic_cast<Triangle *>(obj.get());
+            const Box triangleBox = triangle->getBoundingBox();
+            min.x = std::min(min.x, triangleBox.min.x);
+            min.y = std::min(min.y, triangleBox.min.y);
+            min.z = std::min(min.z, triangleBox.min.z);
+            max.x = std::max(max.x, triangleBox.max.x);
+            max.y = std::max(max.y, triangleBox.max.y);
+            max.z = std::max(max.z, triangleBox.max.z);
         }
-        return {this->coordsToGlobal(min, 1), this->coordsToGlobal(max, 1)};
+        return Box{min, max};
     }
 };

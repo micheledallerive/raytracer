@@ -101,6 +101,6 @@ protected:
             if (point.z > max.z)
                 max.z = point.z;
         }
-        return {min, max};
+        return {this->coordsToGlobal(min, 1), this->coordsToGlobal(max, 1)};
     }
 };

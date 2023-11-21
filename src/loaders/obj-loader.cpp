@@ -37,7 +37,7 @@ Mesh *OBJMeshLoader::load(const std::string &file_name, const Material &material
     std::vector<glm::vec3> vertex_normals;
 
     std::string name;
-    std::vector<std::unique_ptr<Triangle>> triangles;
+    std::vector<std::unique_ptr<Object>> triangles;
 
     std::string line;
 
@@ -91,5 +91,5 @@ Mesh *OBJMeshLoader::load(const std::string &file_name, const Material &material
     }
 
     std::cout << "Mesh: " << name << " loaded with " << triangles.size() << " triangles" << std::endl;
-    return new Mesh(name, std::move(triangles));
+    return new Mesh(name, triangles);
 }

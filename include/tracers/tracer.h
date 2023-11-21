@@ -16,13 +16,10 @@ protected:
 
 public:
     Tracer();
+    explicit Tracer(std::vector<std::unique_ptr<Object>> &objects);
     virtual ~Tracer() = default;
 
-    template<typename T, typename = std::enable_if_t<std::is_base_of_v<Object, T>>>
-    void addObject(T &&object);
-    void addObject(std::unique_ptr<Object> &&object);
-    void addObject(std::unique_ptr<Object> &object);
-    void addObject(Object *object);
+    [[nodiscard]] std::vector<std::unique_ptr<Object>> &getObjects();
 
     [[nodiscard]] virtual std::optional<Hit> trace(const Ray &ray) const = 0;
 };
