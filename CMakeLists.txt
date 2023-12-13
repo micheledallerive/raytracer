@@ -16,7 +16,8 @@ include_directories("include")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # when executing Raytracer, convert the image .ppm to .png
-add_executable(Raytracer ${SOURCES} main.cpp)
+add_executable(Raytracer ${SOURCES} main.cpp
+        src/raytracer.cpp)
 #add_custom_command(TARGET Raytracer POST_BUILD
 #        COMMAND convert ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/result.ppm ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/result.png)
 
