@@ -8,6 +8,7 @@
 #include "object.h"
 #include "sphere.h"
 #include "tracers/kdtree.h"
+#include "tracers/bvh.h"
 #include "tracers/naive.h"
 #include "triangle.h"
 #include <array>
@@ -17,7 +18,7 @@
 
 class Mesh: public Object
 {
-    using TracerClass = KDTreeTracer;
+    using TracerClass = BVHTracer;
 
 private:
     std::string _name;
