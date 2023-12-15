@@ -68,6 +68,8 @@ void Raytracer::render(const Scene &scene)
     const float sceneLeft = (float) -width * pixelSize / 2.0f;
     const float sceneTop = (float) height * pixelSize / 2.0f;
 
+    const float focalLength = Raytracer::DOF_PARAMS.focalLength;
+
     for (int i = 0; i < width; i++)
         for (int j = 0; j < height; j++) {
             glm::vec3 origin(0, 0, 0);
@@ -78,9 +80,26 @@ void Raytracer::render(const Scene &scene)
             glm::vec3 direction(x, y, z);
             direction = glm::normalize(direction);
 
-            Ray ray(origin, direction);// ray traversal
+            const glm::vec3 focalPoint = focalLength * direction / direction.z;
 
-            image.setPixel(i, j, tone_mapping(trace_ray(scene, ray)));
+            glm::vec3 color(0);
+
+            for (int k = 0; k < Raytracer::DOF_PARAMS.samples; k++) {
+                const glm::vec3 offset = glm::vec3(
+                    (((float) rand() / ((float) RAND_MAX)) - 0.5) * Raytracer::DOF_PARAMS.aperture,
+                    (((float) rand() / ((float) RAND_MAX)) - 0.5) * Raytracer::DOF_PARAMS.aperture,
+                    0);
+                const glm::vec3 newOrigin = origin + offset;
+                const glm::vec3 newDirection = glm::normalize(focalPoint - newOrigin);
+                color += trace_ray(scene, Ray(newOrigin, newDirection), 0);
+            }
+
+            color /= (float) Raytracer::DOF_PARAMS.samples;
+            image.setPixel(i, j, tone_mapping(color));
+
+            //            Ray ray(origin, direction);// ray traversal
+            //
+            //            image.setPixel(i, j, tone_mapping(trace_ray(scene, ray)));
         }
 
     image.writeImage("result_full.ppm");

@@ -64,7 +64,7 @@ void sceneDefinition(SceneBuilder &builder)
 
 int main(int argc, const char *argv[])
 {
-    Raytracer tracer = Raytracer(1024, 768, 90).setAntiAliasing(2);
+    Raytracer tracer = Raytracer(1024, 768, 90).setAntiAliasing(1);
 
     // Compute the size of each pixel given the FOV
     scene.setup<NaiveTracer>(sceneDefinition);
