@@ -37,7 +37,7 @@ public:
 	 Writes and image to a file in ppm format
 	 @param path the path where to the target image
 	 */
-    void writeImage(const std::string &path);
+    void writeImage(const std::string &path) const;
 
     /**
 	 Set a value for one pixel
@@ -66,4 +66,6 @@ public:
 	 @param color color of the pixel expressed as vec3 of RGB values in range from 0 to 1
 	 */
     void setPixel(int x, int y, glm::vec3 color);
+
+    [[nodiscard]] Image downsample(int factor) const;
 };

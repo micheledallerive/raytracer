@@ -24,6 +24,8 @@ private:
     std::vector<Light> lights;
     std::unique_ptr<Tracer> tracer;
 
+    const glm::vec3 ambient_light = glm::vec3(0.001f);
+
 public:
     Scene() : lights(), tracer() {}
     ~Scene() = default;
@@ -47,5 +49,10 @@ public:
         return tracer->trace(ray);
     }
 
-    std::vector<Light> &getLights() { return lights; }
+    [[nodiscard]] const std::vector<Light> &getLights() const { return lights; }
+
+    [[nodiscard]] const glm::vec3 &getAmbientLight() const
+    {
+        return ambient_light;
+    }
 };
