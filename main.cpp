@@ -3,7 +3,7 @@
 */
 
 #include "image.h"
-#include "light.h"
+#include "lights/light.h"
 #include "loaders/loader.h"
 #include "material.h"
 #include "objects/mesh.h"
@@ -19,6 +19,7 @@
 #include "animation.h"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/glm.hpp"
+#include "lights/point.h"
 #include "loaders/obj-loader.h"
 #include "objects/cone.h"
 #include <cmath>
@@ -57,9 +58,9 @@ void sceneDefinition(SceneBuilder &builder)
     builder.objects.emplace_back(new Plane(glm::vec3(0, 0, -0.01), glm::vec3(0, 0, 1), Material()));
 
     // ========= LIGHTS =========
-    builder.lights.emplace_back(glm::vec3(0, 26, 5), glm::vec3(1.0f));
-    builder.lights.emplace_back(glm::vec3(0, 1, 12), glm::vec3(0.1f));
-    builder.lights.emplace_back(glm::vec3(0, 5, 1), glm::vec3(0.4f));
+    builder.lights.emplace_back(new PointLight(glm::vec3(0, 26, 5), glm::vec3(1.0f)));
+    builder.lights.emplace_back(new PointLight(glm::vec3(0, 1, 12), glm::vec3(0.1f)));
+    builder.lights.emplace_back(new PointLight(glm::vec3(0, 5, 1), glm::vec3(0.4f)));
 }
 
 int main(int argc, const char *argv[])

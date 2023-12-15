@@ -35,11 +35,11 @@ glm::vec3 phong_model(const Scene &scene, const glm::vec3 &point, const glm::vec
 {
     glm::vec3 color = material.ambient * scene.getAmbientLight();// diffusion
     for (const auto &light : scene.getLights()) {
-        const glm::vec3 light_direction = glm::normalize(light.position - point);
+        const glm::vec3 light_direction = glm::normalize(light->getSamples()[0] - point);
         glm::vec3 diffuse(0);
         const float light_angle = glm::dot(normal, light_direction);
         if (light_angle > 0) {
-            diffuse = material.diffuse * light_angle * light.color;
+            diffuse = material.diffuse * light_angle * light->getColor();
             if (material.texture)
                 diffuse *= material.texture(uv);
         }
@@ -48,10 +48,10 @@ glm::vec3 phong_model(const Scene &scene, const glm::vec3 &point, const glm::vec
         glm::vec3 specular(0);
         const float reflection_angle = glm::dot(reflection_direction, view_direction);
         if (reflection_angle > 0) {
-            specular = material.specular * glm::pow(reflection_angle, material.shininess) * light.color;
+            specular = material.specular * glm::pow(reflection_angle, material.shininess) * light->getColor();
         }
 
-        const float light_distance = glm::max(glm::distance(light.position, point), 0.1f);
+        const float light_distance = glm::max(glm::distance(light->getSamples()[0], point), 0.1f);
         const float attenuation = 1.0f / (light_distance * light_distance);
 
         const float shadow_factor = shadow(scene, point, light_direction, light_distance);

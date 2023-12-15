@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "light.h"
+#include "lights/light.h"
 #include "objects/object.h"
 #include "tracers/naive.h"
 #include "tracers/tracer.h"
@@ -14,14 +14,14 @@
 class SceneBuilder
 {
 public:
-    std::vector<Light> lights;
+    std::vector<std::unique_ptr<Light>> lights;
     std::vector<std::unique_ptr<Object>> objects;
 };
 
 class Scene
 {
 private:
-    std::vector<Light> lights;
+    std::vector<std::unique_ptr<Light>> lights;
     std::unique_ptr<Tracer> tracer;
 
     const glm::vec3 ambient_light = glm::vec3(0.001f);
@@ -49,7 +49,7 @@ public:
         return tracer->trace(ray);
     }
 
-    [[nodiscard]] const std::vector<Light> &getLights() const { return lights; }
+    [[nodiscard]] const std::vector<std::unique_ptr<Light>> &getLights() const { return lights; }
 
     [[nodiscard]] const glm::vec3 &getAmbientLight() const
     {
