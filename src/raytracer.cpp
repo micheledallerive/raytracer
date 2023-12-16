@@ -83,8 +83,6 @@ void Raytracer::render(const Scene &scene)
             image.setPixel(i, j, tone_mapping(trace_ray(scene, ray)));
         }
 
-    image.writeImage("result_full.ppm");
-
     t = clock() - t;
     std::cout << "It took " << ((float) t) / CLOCKS_PER_SEC << " seconds to render the image." << std::endl;
     std::cout << "I could render at " << (float) CLOCKS_PER_SEC / ((float) t) << " frames per second." << std::endl;
