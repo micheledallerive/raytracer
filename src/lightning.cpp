@@ -26,31 +26,36 @@ glm::vec3 phong_model(const Scene &scene, const glm::vec3 &point, const glm::vec
 {
     glm::vec3 color = material.ambient * scene.getAmbientLight();// diffusion
     for (const auto &light : scene.getLights()) {
-        const glm::vec3 light_position = *std::min_element(light->getSamples().begin(), light->getSamples().end(), [&](const glm::vec3 &a, const glm::vec3 &b) {
-            return glm::distance(a, point) < glm::distance(b, point);
-        });
-        const glm::vec3 light_direction = glm::normalize(light_position - point);
-        glm::vec3 diffuse(0);
-        const float light_angle = glm::dot(normal, light_direction);
-        if (light_angle > 0) {
-            diffuse = material.diffuse * light_angle * light->getColor();
-            if (material.texture)
-                diffuse *= material.texture(uv);
+        glm::vec3 plc(0.0f);
+        for (const auto &light_position : light->getSamples()) {
+            const glm::vec3 light_direction = glm::normalize(light_position - point);
+            glm::vec3 diffuse(0);
+            const float light_angle = glm::dot(normal, light_direction);
+            if (light_angle > 0) {
+                diffuse = material.diffuse * light_angle * light->getColor();
+                if (material.texture)
+                    diffuse *= material.texture(uv);
+            }
+
+            glm::vec3 reflection_direction = glm::normalize(glm::reflect(-light_direction, normal));
+            glm::vec3 specular(0);
+            const float reflection_angle = glm::dot(reflection_direction, view_direction);
+            if (reflection_angle > 0) {
+                specular = material.specular * glm::pow(reflection_angle, material.shininess) * light->getColor();
+            }
+
+            plc += (diffuse + specular);
         }
 
-        glm::vec3 reflection_direction = glm::normalize(glm::reflect(-light_direction, normal));
-        glm::vec3 specular(0);
-        const float reflection_angle = glm::dot(reflection_direction, view_direction);
-        if (reflection_angle > 0) {
-            specular = material.specular * glm::pow(reflection_angle, material.shininess) * light->getColor();
-        }
-
-        const float light_distance = glm::max(glm::distance(light_position, point), 0.05f);
-        const float attenuation = 1.0f / (light_distance * light_distance);
+        const auto closest_sample = *std::min_element(light->getSamples().begin(), light->getSamples().end(),
+                                                     [point](const glm::vec3 &a, const glm::vec3 &b) {
+                                                         return glm::distance(a, point) < glm::distance(b, point);
+                                                     });
+        const float distance = std::max(0.1f, glm::distance(closest_sample, point));
+        const float attenuation = 1.0f / (distance*distance);
 
         const float shadow_factor = shadow(scene, point, light);
-
-        color += attenuation * (diffuse + specular) * shadow_factor;
+        color += (attenuation * shadow_factor * plc) / (float) light->getSamples().size();
     }
     return color;
 }
