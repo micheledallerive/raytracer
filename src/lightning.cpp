@@ -14,11 +14,12 @@ float shadow(const Scene &scene, const glm::vec3 &point, const std::shared_ptr<L
         const glm::vec3 light_direction = glm::normalize(sample - point);
         const Ray shadow_ray = Ray(point, light_direction);
         const std::optional<Hit> shadow_hit = scene.intersect(shadow_ray);
-        if (shadow_hit && glm::distance(shadow_hit->intersection, point) < glm::distance(sample, point))
+        if (shadow_hit && glm::distance(shadow_hit->intersection, point) < glm::distance(sample, point)
+            && shadow_hit->object != light->getLightObject().get())
             blocked++;
         rays++;
     }
-    return 1.0f - ((float)blocked * 1.0f) / (float)rays;
+    return 1.0f - ((float) blocked * 1.0f) / (float) rays;
 }
 
 glm::vec3 phong_model(const Scene &scene, const glm::vec3 &point, const glm::vec3 &normal, const glm::vec2 &uv, const glm::vec3 &view_direction, const Material &material)
@@ -44,7 +45,7 @@ glm::vec3 phong_model(const Scene &scene, const glm::vec3 &point, const glm::vec
             specular = material.specular * glm::pow(reflection_angle, material.shininess) * light->getColor();
         }
 
-        const float light_distance = glm::max(glm::distance(light_position, point), 0.1f);
+        const float light_distance = glm::max(glm::distance(light_position, point), 0.05f);
         const float attenuation = 1.0f / (light_distance * light_distance);
 
         const float shadow_factor = shadow(scene, point, light);

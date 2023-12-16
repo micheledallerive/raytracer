@@ -5,6 +5,8 @@
 #pragma once
 
 #include "glm/glm.hpp"
+#include "objects/object.h"
+#include <memory>
 #include <vector>
 /**
  Light class
@@ -29,4 +31,6 @@ public:
      * @return the color of the light
      */
     [[nodiscard]] glm::vec3 getColor() const;
+
+    [[nodiscard]] virtual std::shared_ptr<Object> getLightObject() const;
 };

@@ -20,3 +20,7 @@ const std::vector<glm::vec3> &Light::getSamples() const
 {
     return samples;
 }
+std::shared_ptr<Object> Light::getLightObject() const
+{
+    return nullptr;
+}

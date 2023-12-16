@@ -10,8 +10,13 @@
 class SurfaceLight: public Light
 {
 private:
-    constexpr static float SAMPLES = 50;
+    constexpr static int SAMPLES = 50;
+
+    const std::shared_ptr<Object> object;
+
 public:
-    explicit SurfaceLight(const Object &object);
-    SurfaceLight(glm::vec3 color, const Object &object);
+    explicit SurfaceLight(const std::shared_ptr<Object> &object);
+    SurfaceLight(glm::vec3 color, const std::shared_ptr<Object> &object);
+
+    [[nodiscard]] std::shared_ptr<Object> getLightObject() const override;
 };

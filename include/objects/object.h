@@ -18,7 +18,7 @@
 class Object
 {
 protected:
-    const std::variant<glm::vec3, Material> surface;///< Surface of the object: either a color (i.e. vec3) or a material
+    std::variant<glm::vec3, Material> surface;///< Surface of the object: either a color (i.e. vec3) or a material
     std::optional<Box> boundingBox;                 ///< Bounding box of the object
 
     glm::mat4 transformationMatrix = glm::mat4(
@@ -74,6 +74,13 @@ public:
     {
         return std::get<T>(surface);
     }
+
+    template<typename S>
+    void setSurface(const S &s)
+    {
+        surface = s;
+    }
+
 
     virtual void transform(const glm::mat4 &transformation)
     {

@@ -4,10 +4,16 @@
 
 #include "lights/surface.h"
 
-SurfaceLight::SurfaceLight(const Object &object) : Light(object.getSamples(SurfaceLight::SAMPLES))
+SurfaceLight::SurfaceLight(const std::shared_ptr<Object> &object)
+    : SurfaceLight(glm::vec3(1), object)
 {
 }
 
-SurfaceLight::SurfaceLight(glm::vec3 color, const Object &object) : Light(color, object.getSamples(SurfaceLight::SAMPLES))
+SurfaceLight::SurfaceLight(glm::vec3 color, const std::shared_ptr<Object> &object)
+    : Light(color, object->getSamples(SurfaceLight::SAMPLES)), object(object)
 {
+}
+std::shared_ptr<Object> SurfaceLight::getLightObject() const
+{
+    return object;
 }

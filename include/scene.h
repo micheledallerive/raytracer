@@ -5,6 +5,7 @@
 #pragma once
 
 #include "lights/light.h"
+#include "lights/surface.h"
 #include "objects/object.h"
 #include "tracers/naive.h"
 #include "tracers/tracer.h"
@@ -13,9 +14,36 @@
 
 class SceneBuilder
 {
-public:
+private:
     std::vector<std::shared_ptr<Light>> lights;
     std::vector<std::shared_ptr<Object>> objects;
+
+    friend class Scene;
+
+public:
+    SceneBuilder() : lights(), objects() {}
+    ~SceneBuilder() = default;
+
+    template<typename L>
+    void addLight(const L light)
+    {
+        lights.emplace_back(light);
+    }
+
+    template<typename O>
+    void addObject(const O object)
+    {
+        objects.emplace_back(object);
+    }
+
+    template<typename O>
+    void addLightObject(const O object, const glm::vec3 color)
+    {
+        objects.emplace_back(object);
+        const auto obj_ptr = objects.back();
+        obj_ptr->setSurface(color);
+        lights.emplace_back(std::make_shared<SurfaceLight>(color, obj_ptr));
+    }
 };
 
 class Scene
