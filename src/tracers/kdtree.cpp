@@ -73,7 +73,7 @@ std::optional<Hit> KDTreeTracer::trace(const Ray &ray) const
 }
 
 
-KDTreeTracer::KDTreeTracer(std::vector<std::unique_ptr<Object>> &_objects)
+KDTreeTracer::KDTreeTracer(std::vector<std::shared_ptr<Object>> &_objects)
     : Tracer(_objects)
 {
     std::vector<int> idxs(objects.size());

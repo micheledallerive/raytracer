@@ -37,7 +37,7 @@ Mesh *OBJMeshLoader::load(const std::string &file_name, const Material &material
     std::vector<glm::vec3> vertex_normals;
 
     std::string name;
-    std::vector<std::unique_ptr<Object>> triangles;
+    std::vector<std::shared_ptr<Object>> triangles;
 
     std::string line;
 

@@ -85,7 +85,7 @@ public:
 
     KDTreeTracer() = default;
 
-    explicit KDTreeTracer(std::vector<std::unique_ptr<Object>> &objects);
+    explicit KDTreeTracer(std::vector<std::shared_ptr<Object>> &objects);
 
     ~KDTreeTracer() override = default;
 

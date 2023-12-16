@@ -6,7 +6,7 @@
 #include "ray.h"
 #include "scene.h"
 
-float shadow(const Scene &scene, const glm::vec3 &point, const std::unique_ptr<Light> &light)
+float shadow(const Scene &scene, const glm::vec3 &point, const std::shared_ptr<Light> &light)
 {
     int rays = 0;
     int blocked = 0;

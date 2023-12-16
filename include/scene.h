@@ -14,15 +14,15 @@
 class SceneBuilder
 {
 public:
-    std::vector<std::unique_ptr<Light>> lights;
-    std::vector<std::unique_ptr<Object>> objects;
+    std::vector<std::shared_ptr<Light>> lights;
+    std::vector<std::shared_ptr<Object>> objects;
 };
 
 class Scene
 {
 private:
-    std::vector<std::unique_ptr<Light>> lights;
-    std::unique_ptr<Tracer> tracer;
+    std::vector<std::shared_ptr<Light>> lights;
+    std::shared_ptr<Tracer> tracer;
 
     const glm::vec3 ambient_light = glm::vec3(0.001f);
 
@@ -49,7 +49,7 @@ public:
         return tracer->trace(ray);
     }
 
-    [[nodiscard]] const std::vector<std::unique_ptr<Light>> &getLights() const { return lights; }
+    [[nodiscard]] const std::vector<std::shared_ptr<Light>> &getLights() const { return lights; }
 
     [[nodiscard]] const glm::vec3 &getAmbientLight() const
     {
