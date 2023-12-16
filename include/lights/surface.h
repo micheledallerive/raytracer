@@ -10,7 +10,7 @@
 class SurfaceLight: public Light
 {
 private:
-    constexpr static float SAMPLES = 10;
+    constexpr static float SAMPLES = 50;
 public:
     explicit SurfaceLight(const Object &object);
     SurfaceLight(glm::vec3 color, const Object &object);

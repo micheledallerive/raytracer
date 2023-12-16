@@ -6,36 +6,29 @@
 #include "ray.h"
 #include "scene.h"
 
-float shadow(const Scene &scene, const glm::vec3 &point, const glm::vec3 &direction, const float light_distance, int depth=0)
+float shadow(const Scene &scene, const glm::vec3 &point, const std::unique_ptr<Light> &light)
 {
-    const std::optional<Hit> closest_hit = scene.intersect(Ray(point, direction));
-    if (!closest_hit)
-        return 1;
-    if (depth >= MAX_RAY_DEPTH)
-        return 1;
-
-    const std::optional<Material> material = closest_hit->object->getSurfaceSafe<Material>();
-    if (!material)
-        return closest_hit->distance < light_distance ? 0 : 1;
-
-    const bool transparent = material->transparency > 0;
-    if (!transparent)
-        return closest_hit->distance < light_distance ? 0 : 1;
-
-    const float n1 = glm::dot(direction, closest_hit->normal) > 0 ? material->refractive_index : 1.0f;
-    const float n2 = glm::dot(direction, closest_hit->normal) > 0 ? 1.0f : material->refractive_index;
-    const float n = n1 / n2;
-    const glm::vec3 refracted_direction = glm::refract(direction, closest_hit->normal, n);
-
-    const float refracted_color = shadow(scene, closest_hit->intersection, refracted_direction, light_distance, depth + 1);
-    return material->transparency * refracted_color;
+    int rays = 0;
+    int blocked = 0;
+    for (const glm::vec3 &sample : light->getSamples()) {
+        const glm::vec3 light_direction = glm::normalize(sample - point);
+        const Ray shadow_ray = Ray(point, light_direction);
+        const std::optional<Hit> shadow_hit = scene.intersect(shadow_ray);
+        if (shadow_hit && glm::distance(shadow_hit->intersection, point) < glm::distance(sample, point))
+            blocked++;
+        rays++;
+    }
+    return 1.0f - ((float)blocked * 1.0f) / (float)rays;
 }
 
 glm::vec3 phong_model(const Scene &scene, const glm::vec3 &point, const glm::vec3 &normal, const glm::vec2 &uv, const glm::vec3 &view_direction, const Material &material)
 {
     glm::vec3 color = material.ambient * scene.getAmbientLight();// diffusion
     for (const auto &light : scene.getLights()) {
-        const glm::vec3 light_direction = glm::normalize(light->getSamples()[0] - point);
+        const glm::vec3 light_position = *std::min_element(light->getSamples().begin(), light->getSamples().end(), [&](const glm::vec3 &a, const glm::vec3 &b) {
+            return glm::distance(a, point) < glm::distance(b, point);
+        });
+        const glm::vec3 light_direction = glm::normalize(light_position - point);
         glm::vec3 diffuse(0);
         const float light_angle = glm::dot(normal, light_direction);
         if (light_angle > 0) {
@@ -51,10 +44,10 @@ glm::vec3 phong_model(const Scene &scene, const glm::vec3 &point, const glm::vec
             specular = material.specular * glm::pow(reflection_angle, material.shininess) * light->getColor();
         }
 
-        const float light_distance = glm::max(glm::distance(light->getSamples()[0], point), 0.1f);
+        const float light_distance = glm::max(glm::distance(light_position, point), 0.1f);
         const float attenuation = 1.0f / (light_distance * light_distance);
 
-        const float shadow_factor = shadow(scene, point, light_direction, light_distance);
+        const float shadow_factor = shadow(scene, point, light);
 
         color += attenuation * (diffuse + specular) * shadow_factor;
     }

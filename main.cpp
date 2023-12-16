@@ -20,6 +20,7 @@
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/glm.hpp"
 #include "lights/point.h"
+#include "lights/surface.h"
 #include "loaders/obj-loader.h"
 #include "objects/cone.h"
 #include <cmath>
@@ -51,16 +52,21 @@ void sceneDefinition(SceneBuilder &builder)
     builder.objects.emplace_back(bunny);
 
     builder.objects.emplace_back(new Plane(glm::vec3(0, -3, 0), glm::vec3(0, 1, 0)));
-    builder.objects.emplace_back(new Plane(glm::vec3(0, 0, 30), glm::vec3(0, 0, -1), Material()));
+    builder.objects.emplace_back(new Plane(glm::vec3(0, 27, 0), glm::vec3(0, -1, 0)));
     builder.objects.emplace_back(new Plane(glm::vec3(-15, 0, 0), glm::vec3(1, 0, 0), Material()));
     builder.objects.emplace_back(new Plane(glm::vec3(15, 0, 0), glm::vec3(-1, 0, 0), Material()));
-    builder.objects.emplace_back(new Plane(glm::vec3(0, 27, 0), glm::vec3(0, -1, 0)));
+    builder.objects.emplace_back(new Plane(glm::vec3(0, 0, 30), glm::vec3(0, 0, -1)));
     builder.objects.emplace_back(new Plane(glm::vec3(0, 0, -0.01), glm::vec3(0, 0, 1), Material()));
 
+    auto lightSphere = new Sphere(MaterialFactory().build());
+    lightSphere->transform(glm::translate(glm::mat4(1.0f), glm::vec3(0, 8, 16)));
+//    builder.objects.emplace_back(lightSphere);
+
     // ========= LIGHTS =========
-    builder.lights.emplace_back(new PointLight(glm::vec3(0, 26, 5), glm::vec3(1.0f)));
-    builder.lights.emplace_back(new PointLight(glm::vec3(0, 1, 12), glm::vec3(0.1f)));
-    builder.lights.emplace_back(new PointLight(glm::vec3(0, 5, 1), glm::vec3(0.4f)));
+//    builder.lights.emplace_back(new PointLight(glm::vec3(0, 26, 5), glm::vec3(1.0f)));
+//    builder.lights.emplace_back(new PointLight(glm::vec3(0, 1, 12), glm::vec3(0.1f)));
+//    builder.lights.emplace_back(new PointLight(glm::vec3(0, 5, 1), glm::vec3(0.4f)));
+    builder.lights.emplace_back(new SurfaceLight({1.0f, 1.0f, 1.0f}, *lightSphere));
 }
 
 int main(int argc, const char *argv[])
