@@ -12,3 +12,4 @@ frames/
 callgrind*
 memcheck.log
 build/
+cmake-build*
