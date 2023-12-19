@@ -1,5 +1,16 @@
+#ifndef DEBUG_BUILD
+#define DEBUG_BUILD 0
+#endif
+
 #define LOG(x) \
-    std::cout << x << std::endl;
+    if (DEBUG_BUILD) {\
+        std::cout << x << '\n'; \
+    }
+
+#define PRINT(x) \
+    if (DEBUG_BUILD) { \
+        std::cout << #x << ": " << x << '\n'; \
+    }
 
 #pragma once
 
@@ -29,15 +40,15 @@ public:
     BVHNode * right;
 
     explicit BVHNode(vector<Triangle> & arg_triangles, int axis = 0) {
-        bounds = calculateBoundingBox(arg_triangles);
+        triangles = vector<Triangle>(arg_triangles);
+        bounds = calculateBoundingBox(triangles);
 
         if (triangles.size() <= 20) {
             this->left = nullptr;
             this->right = nullptr;
-            this->triangles = vector(arg_triangles);
+            this->triangles = vector<Triangle>(arg_triangles);
         } else {
-            pair<vector<Triangle>, vector<Triangle>> split =
-                splitTrianglesSpace(triangles, axis);
+            pair<vector<Triangle>, vector<Triangle>> split = splitTrianglesSpace(triangles, axis);
             vector<Triangle> & l = split.first;
             vector<Triangle> & r = split.second;
 
@@ -46,10 +57,10 @@ public:
         }
     }
 
-    static Box calculateBoundingBox(std::vector<Triangle> & arg_triangles) {
+    static Box calculateBoundingBox(vector<Triangle> & arg_triangles) {
         Box box;
 
-        for (Triangle &triangle : arg_triangles) {
+        for (Triangle & triangle : arg_triangles) {
             box.merge(triangle.getBoundingBox());
         }
         return box;
@@ -116,12 +127,12 @@ class BVHTracer : public Tracer {
 public:
     BVHNode * root;
 
-    [[nodiscard]]
     optional<Hit> trace(const Ray &ray) const override {
         optional<Hit> closest_hit;
         optional<Hit> hit = root->bounds.intersect(ray);
 
         LOG("trying")
+        PRINT(hit.has_value())
         if (!hit.has_value()) {
             return std::nullopt;
         }
@@ -138,7 +149,7 @@ public:
         return closest_hit;
     }
 
-    BVHTracer(vector<std::unique_ptr<Object>> &_objects) : Tracer(_objects)
+    explicit BVHTracer(vector<std::unique_ptr<Object>> &_objects) : Tracer(_objects)
     {
         vector<int> idxs(objects.size());
         std::iota(idxs.begin(), idxs.end(), 0);
@@ -146,10 +157,13 @@ public:
         const auto startTime = clock();
         //construct(0, 0, std::move(idxs));
         vector<Triangle> triangles;
-        for (auto &ptr : _objects) triangles.push_back(*dynamic_cast<Triangle *>(ptr.get()));
+        triangles.reserve(_objects.size());
+        for (auto &ptr : objects) {
+            triangles.push_back(*dynamic_cast<Triangle *>(ptr.get()));
+        }
         this->root = new BVHNode(triangles);
         const auto endTime = clock();
-        cout << "KDTree construction time: " << (endTime - startTime) / (double) CLOCKS_PER_SEC << "s" << endl;
+        cout << "BVH construction time: " << (endTime - startTime) / (double) CLOCKS_PER_SEC << "s" << endl;
     }
 
     explicit BVHTracer(vector<Triangle> &triangles) {

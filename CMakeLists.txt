@@ -20,3 +20,12 @@ add_executable(Raytracer ${SOURCES} main.cpp)
 #add_custom_command(TARGET Raytracer POST_BUILD
 #        COMMAND convert ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/result.ppm ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/result.png)
 
+
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose the type of build (Debug, Release, ...)" FORCE)
+endif()
+
+# Add a definition for DEBUG_BUILD in Debug configuration
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_definitions(-DDEBUG_BUILD)
+endif()

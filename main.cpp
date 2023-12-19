@@ -218,15 +218,15 @@ void sceneDefinition(SceneBuilder &builder)
     bunny->initializeTracer();
     builder.objects.emplace_back(bunny);
 
-    Mesh *const armadillo = OBJMeshLoader().load("../../meshes/armadillo.obj", MaterialFactory().build());
-    armadillo->transform(glm::translate(glm::mat4(1.0f), glm::vec3(-4, -3, 10)));
-    armadillo->initializeTracer();
-    builder.objects.emplace_back(armadillo);
-
-    Mesh *const lucy = OBJMeshLoader().load("../../meshes/lucy.obj", MaterialFactory().build());
-    lucy->transform(glm::translate(glm::mat4(1.0f), glm::vec3(4, -3, 10)));
-    lucy->initializeTracer();
-    builder.objects.emplace_back(lucy);
+//    Mesh *const armadillo = OBJMeshLoader().load("../../meshes/armadillo.obj", MaterialFactory().build());
+//    armadillo->transform(glm::translate(glm::mat4(1.0f), glm::vec3(-4, -3, 10)));
+//    armadillo->initializeTracer();
+//    builder.objects.emplace_back(armadillo);
+//
+//    Mesh *const lucy = OBJMeshLoader().load("../../meshes/lucy.obj", MaterialFactory().build());
+//    lucy->transform(glm::translate(glm::mat4(1.0f), glm::vec3(4, -3, 10)));
+//    lucy->initializeTracer();
+//    builder.objects.emplace_back(lucy);
 
     builder.objects.emplace_back(new Plane(glm::vec3(0, -3, 0), glm::vec3(0, 1, 0)));
     builder.objects.emplace_back(new Plane(glm::vec3(0, 0, 30), glm::vec3(0, 0, -1), Material()));
