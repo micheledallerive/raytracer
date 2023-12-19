@@ -82,6 +82,19 @@ public:
             this};
     }
 
+    [[nodiscard]] std::vector<glm::vec3> getSamples(int n) const override
+    {
+        // generate random points on the triangle
+        std::vector<glm::vec3> samples;
+        samples.reserve(n);
+        for (int i = 0; i < n; i++) {
+            const float r1 = (float) random() / (float)RAND_MAX;
+            const float r2 = (float) random() / (float)RAND_MAX;
+            const glm::vec3 sample_point = (1 - r1) * points[0] + (r1 * (1 - r2)) * points[1] + (r1 * r2) * points[2];
+            samples.push_back(sample_point);
+        }
+        return samples;
+    }
 protected:
     Box computeBoundingBox() override
     {
@@ -103,4 +116,5 @@ protected:
         }
         return {this->coordsToGlobal(min, 1), this->coordsToGlobal(max, 1)};
     }
+
 };

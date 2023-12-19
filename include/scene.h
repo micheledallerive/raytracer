@@ -4,7 +4,8 @@
 
 #pragma once
 
-#include "light.h"
+#include "lights/light.h"
+#include "lights/surface.h"
 #include "objects/object.h"
 #include "tracers/naive.h"
 #include "tracers/tracer.h"
@@ -13,16 +14,43 @@
 
 class SceneBuilder
 {
+private:
+    std::vector<std::shared_ptr<Light>> lights;
+    std::vector<std::shared_ptr<Object>> objects;
+
+    friend class Scene;
+
 public:
-    std::vector<Light> lights;
-    std::vector<std::unique_ptr<Object>> objects;
+    SceneBuilder() : lights(), objects() {}
+    ~SceneBuilder() = default;
+
+    template<typename L>
+    void addLight(const L light)
+    {
+        lights.emplace_back(light);
+    }
+
+    template<typename O>
+    void addObject(const O object)
+    {
+        objects.emplace_back(object);
+    }
+
+    template<typename O>
+    void addLightObject(const O object, const glm::vec3 color)
+    {
+        objects.emplace_back(object);
+        const auto obj_ptr = objects.back();
+        obj_ptr->setSurface(color);
+        lights.emplace_back(std::make_shared<SurfaceLight>(color, obj_ptr));
+    }
 };
 
 class Scene
 {
 private:
-    std::vector<Light> lights;
-    std::unique_ptr<Tracer> tracer;
+    std::vector<std::shared_ptr<Light>> lights;
+    std::shared_ptr<Tracer> tracer;
 
     const glm::vec3 ambient_light = glm::vec3(0.001f);
 
@@ -49,7 +77,7 @@ public:
         return tracer->trace(ray);
     }
 
-    [[nodiscard]] const std::vector<Light> &getLights() const { return lights; }
+    [[nodiscard]] const std::vector<std::shared_ptr<Light>> &getLights() const { return lights; }
 
     [[nodiscard]] const glm::vec3 &getAmbientLight() const
     {

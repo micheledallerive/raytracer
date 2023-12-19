@@ -18,8 +18,8 @@
 class Object
 {
 protected:
-    const std::variant<glm::vec3, Material> surface;///< Surface of the object: either a color (i.e. vec3) or a material
-    std::optional<Box> boundingBox;           ///< Bounding box of the object
+    std::variant<glm::vec3, Material> surface;///< Surface of the object: either a color (i.e. vec3) or a material
+    std::optional<Box> boundingBox;                 ///< Bounding box of the object
 
     glm::mat4 transformationMatrix = glm::mat4(
         1.0f);///< Matrix representing the transformation from the local to the global coordinate system
@@ -51,6 +51,7 @@ public:
 
     /** A function computing an intersection, which returns the structure Hit */
     virtual std::optional<Hit> intersect(const Ray &ray) = 0;
+    [[nodiscard]] virtual std::vector<glm::vec3> getSamples(int n) const;
     Box &getBoundingBox();
 
     template<typename T>
@@ -73,6 +74,13 @@ public:
     {
         return std::get<T>(surface);
     }
+
+    template<typename S>
+    void setSurface(const S &s)
+    {
+        surface = s;
+    }
+
 
     virtual void transform(const glm::mat4 &transformation)
     {

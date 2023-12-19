@@ -58,6 +58,19 @@ public:
         return this->transformHitToGlobal(Hit{normal, intersection, t, this, {u, v}}, ray);
     }
 
+    [[nodiscard]] std::vector<glm::vec3> getSamples(int n) const override
+    {
+        std::vector<glm::vec3> samples;
+        samples.reserve(n);
+        for (int i = 0; i < n; i++) {
+            const float theta = 2 * M_PI * (i + 0.5f) / n;
+            const float phi = acos(1 - 2 * (i + 0.5f) / n);
+            const auto point = glm::vec3(sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi));
+            samples.push_back(coordsToGlobal(point, 1));
+        }
+        return samples;
+    }
+
 protected:
     Box computeBoundingBox() override
     {

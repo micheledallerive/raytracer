@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 #set(CMAKE_AUTOMOC ON)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -Wpedantic -Ofast")
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -Wpedantic -Ofast -fopenmp")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")

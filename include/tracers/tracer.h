@@ -12,14 +12,14 @@
 class Tracer
 {
 protected:
-    std::vector<std::unique_ptr<Object>> objects;
+    std::vector<std::shared_ptr<Object>> objects;
 
 public:
     Tracer();
-    explicit Tracer(std::vector<std::unique_ptr<Object>> &objects);
+    explicit Tracer(std::vector<std::shared_ptr<Object>> &objects);
     virtual ~Tracer() = default;
 
-    [[nodiscard]] std::vector<std::unique_ptr<Object>> &getObjects();
+    [[nodiscard]] std::vector<std::shared_ptr<Object>> &getObjects();
 
     [[nodiscard]] virtual std::optional<Hit> trace(const Ray &ray) const = 0;
 };
