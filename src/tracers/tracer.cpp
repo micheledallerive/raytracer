@@ -5,10 +5,10 @@
 #include "tracers/tracer.h"
 Tracer::Tracer() : objects() {}
 
-Tracer::Tracer(std::vector<std::unique_ptr<Object>> &objects) : objects(std::move(objects))
+Tracer::Tracer(std::vector<std::shared_ptr<Object>> &objects) : objects(std::move(objects))
 {
 }
-std::vector<std::unique_ptr<Object>> &Tracer::getObjects()
+std::vector<std::shared_ptr<Object>> &Tracer::getObjects()
 {
     return objects;
 }

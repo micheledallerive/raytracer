@@ -4,6 +4,7 @@
 #include "raytracer.h"
 #include "lightning.h"
 #include "ray.h"
+#include <omp.h>
 #include <iostream>
 
 Raytracer::Raytracer(int width, int height, int fov, std::string outputFile)
@@ -68,8 +69,7 @@ void Raytracer::render(const Scene &scene)
     const float sceneLeft = (float) -width * pixelSize / 2.0f;
     const float sceneTop = (float) height * pixelSize / 2.0f;
 
-    const float focalLength = Raytracer::DOF_PARAMS.focalLength;
-
+    #pragma omp parallel for schedule(dynamic, 1) collapse(2) num_threads(omp_get_max_threads())
     for (int i = 0; i < width; i++)
         for (int j = 0; j < height; j++) {
             glm::vec3 origin(0, 0, 0);
@@ -101,8 +101,6 @@ void Raytracer::render(const Scene &scene)
             //
             //            image.setPixel(i, j, tone_mapping(trace_ray(scene, ray)));
         }
-
-    image.writeImage("result_full.ppm");
 
     t = clock() - t;
     std::cout << "It took " << ((float) t) / CLOCKS_PER_SEC << " seconds to render the image." << std::endl;

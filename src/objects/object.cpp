@@ -39,3 +39,7 @@ glm::vec3 Object::coordsToLocal(const glm::vec3 &point, float w = 0) const
 {
     return {inverseTransformationMatrix * glm::vec4(point, w)};
 }
+std::vector<glm::vec3> Object::getSamples(int n __attribute_maybe_unused__) const
+{
+    return {};
+}

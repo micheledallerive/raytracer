@@ -3,7 +3,7 @@
 */
 
 #include "image.h"
-#include "light.h"
+#include "lights/light.h"
 #include "loaders/loader.h"
 #include "material.h"
 #include "objects/mesh.h"
@@ -19,8 +19,11 @@
 #include "animation.h"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/glm.hpp"
+#include "lights/point.h"
+#include "lights/surface.h"
 #include "loaders/obj-loader.h"
 #include "objects/cone.h"
+#include "objects/square.h"
 #include <cmath>
 #include <ctime>
 #include <iostream>
@@ -47,19 +50,27 @@ void sceneDefinition(SceneBuilder &builder)
     Mesh *const bunny = OBJMeshLoader().load("../../meshes/bunny_small.obj", MaterialFactory().build());
     bunny->transform(glm::translate(glm::mat4(1.0f), glm::vec3(0, -3, 8)));
     bunny->initializeTracer();
-    builder.objects.emplace_back(bunny);
+    builder.addObject(bunny);
 
-    builder.objects.emplace_back(new Plane(glm::vec3(0, -3, 0), glm::vec3(0, 1, 0)));
-    builder.objects.emplace_back(new Plane(glm::vec3(0, 0, 30), glm::vec3(0, 0, -1), Material()));
-    builder.objects.emplace_back(new Plane(glm::vec3(-15, 0, 0), glm::vec3(1, 0, 0), Material()));
-    builder.objects.emplace_back(new Plane(glm::vec3(15, 0, 0), glm::vec3(-1, 0, 0), Material()));
-    builder.objects.emplace_back(new Plane(glm::vec3(0, 27, 0), glm::vec3(0, -1, 0)));
-    builder.objects.emplace_back(new Plane(glm::vec3(0, 0, -0.01), glm::vec3(0, 0, 1), Material()));
+    builder.addObject(new Plane(glm::vec3(0, -3, 0), glm::vec3(0, 1, 0)));
+    builder.addObject(new Plane(glm::vec3(0, 27, 0), glm::vec3(0, -1, 0)));
+    builder.addObject(new Plane(glm::vec3(-15, 0, 0), glm::vec3(1, 0, 0), Material()));
+    builder.addObject(new Plane(glm::vec3(15, 0, 0), glm::vec3(-1, 0, 0), Material()));
+    builder.addObject(new Plane(glm::vec3(0, 0, 30), glm::vec3(0, 0, -1)));
+    builder.addObject(new Plane(glm::vec3(0, 0, -0.01), glm::vec3(0, 0, 1), Material()));
+
+    //    auto lightSphere = new Sphere(MaterialFactory().build());
+    //    lightSphere->transform(glm::translate(glm::mat4(1.0f), glm::vec3(0, 8, 16)));
+    //    builder.addLightObject(lightSphere, glm::vec3(1.0f, 0.0f, 0.0f));
+    const float squarez = 14.5f;
+    auto square_obj = new Square({squarez, 4, 12}, {squarez, 6, 12}, {squarez, 6, 18}, {squarez, 4, 18},
+                                 MaterialFactory().build());
+    builder.addLightObject(square_obj, glm::vec3(0.1f, 0.1f, 0.0f));
 
     // ========= LIGHTS =========
-    builder.lights.emplace_back(glm::vec3(0, 26, 5), glm::vec3(1.0f));
-    builder.lights.emplace_back(glm::vec3(0, 1, 12), glm::vec3(0.1f));
-    builder.lights.emplace_back(glm::vec3(0, 5, 1), glm::vec3(0.4f));
+//    builder.addLight(new PointLight(glm::vec3(0, 26, 5), glm::vec3(1.0f)));
+    //    builder.addLight(new PointLight(glm::vec3(0, 1, 12), glm::vec3(0.1f)));
+//        builder.addLight(new PointLight(glm::vec3(0, 5, 1), glm::vec3(0.4f)));
 }
 
 int main(int argc, const char *argv[])

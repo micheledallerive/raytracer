@@ -21,13 +21,13 @@ class Mesh: public Object
 
 private:
     std::string _name;
-    std::unique_ptr<TracerClass> _tracer;
-    std::vector<std::unique_ptr<Object>> _triangles;
+    std::shared_ptr<TracerClass> _tracer;
+    std::vector<std::shared_ptr<Object>> _triangles;
 
 public:
     ~Mesh() override = default;
 
-    Mesh(std::string name, std::vector<std::unique_ptr<Object>> &triangles)
+    Mesh(std::string name, std::vector<std::shared_ptr<Object>> &triangles)
         : _name(std::move(name)), _triangles(std::move(triangles))
     {
     }
