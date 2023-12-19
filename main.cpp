@@ -213,7 +213,7 @@ glm::vec3 tone_mapping(const glm::vec3 &intensity)
  */
 void sceneDefinition(SceneBuilder &builder)
 {
-    Mesh *const bunny = OBJMeshLoader().load("../../meshes/bunny.obj", MaterialFactory().build());
+    Mesh *const bunny = OBJMeshLoader().load("../../meshes/bunny_small.obj", MaterialFactory().build());
     bunny->transform(glm::translate(glm::mat4(1.0f), glm::vec3(0, -3, 8)));
     bunny->initializeTracer();
     builder.objects.emplace_back(bunny);
@@ -245,17 +245,10 @@ int main(int argc, const char *argv[])
 {
     clock_t t = clock();// variable for keeping the time of the rendering
 
-#ifndef DEBUG
-#define DEBUG 0
-#endif
-
-#if DEBUG
     int width = 512; // width of the image
     int height = 384;// height of the image
-#else
-    int width = 2048;// width of the image
-    int height = 1536;// height of the image
-#endif
+//    int width = 2048;// width of the image
+//    int height = 1536;// height of the image
     float fov = 90;// field of view
 
     // Compute the size of each pixel given the FOV

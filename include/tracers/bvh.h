@@ -2,44 +2,46 @@
 #define DEBUG_BUILD 0
 #endif
 
-#define LOG(x) \
-    if (DEBUG_BUILD) {\
+#define LOG(x)                  \
+    if (DEBUG_BUILD) {          \
         std::cout << x << '\n'; \
     }
 
-#define PRINT(x) \
-    if (DEBUG_BUILD) { \
+#define PRINT(x)                              \
+    if (DEBUG_BUILD) {                        \
         std::cout << #x << ": " << x << '\n'; \
     }
 
 #pragma once
 
-#include "tracer.h"
 #include "../objects/box.h"
 #include "../objects/triangle.h"
-#include <vector>
+#include "tracer.h"
 #include <iostream>
+#include <numeric>
 #include <stdexcept>
 #include <utility>
-#include <numeric>
+#include <vector>
 
-using std::vector;
 using glm::vec3;
-using std::pair;
-using std::min;
-using std::max;
-using std::optional;
 using std::cout;
 using std::endl;
+using std::max;
+using std::min;
+using std::optional;
+using std::pair;
+using std::vector;
 
-class BVHNode {
+class BVHNode
+{
 public:
     Box bounds;
     vector<Triangle> triangles;
-    BVHNode * left;
-    BVHNode * right;
+    BVHNode *left;
+    BVHNode *right;
 
-    explicit BVHNode(vector<Triangle> & arg_triangles, int axis = 0) {
+    explicit BVHNode(vector<Triangle> &arg_triangles, int axis = 0)
+    {
         triangles = vector<Triangle>(arg_triangles);
         bounds = calculateBoundingBox(triangles);
 
@@ -47,43 +49,45 @@ public:
             this->left = nullptr;
             this->right = nullptr;
             this->triangles = vector<Triangle>(arg_triangles);
-        } else {
+        }
+        else {
             pair<vector<Triangle>, vector<Triangle>> split = splitTrianglesSpace(triangles, axis);
-            vector<Triangle> & l = split.first;
-            vector<Triangle> & r = split.second;
+            vector<Triangle> &l = split.first;
+            vector<Triangle> &r = split.second;
 
             this->left = new BVHNode(l, (axis + 1) % 3);
             this->right = new BVHNode(r, (axis + 1) % 3);
         }
     }
 
-    static Box calculateBoundingBox(vector<Triangle> & arg_triangles) {
+    static Box calculateBoundingBox(vector<Triangle> &arg_triangles)
+    {
         Box box;
 
-        for (Triangle & triangle : arg_triangles) {
+        for (Triangle &triangle : arg_triangles) {
             box.merge(triangle.getBoundingBox());
         }
         return box;
     }
 
     static pair<vector<Triangle>, vector<Triangle>>
-    splitTrianglesSpace(vector<Triangle> &arg_triangles, int axis) {
+    splitTrianglesSpace(vector<Triangle> &arg_triangles, int axis)
+    {
         vector<Triangle> l;
         vector<Triangle> r;
 
         float mid = 0;
         for (const Triangle &triangle : arg_triangles) {
-            mid += triangle.points[0][axis] + triangle.points[1][axis] +
-                triangle.points[2][axis];
+            mid += triangle.points[0][axis] + triangle.points[1][axis] + triangle.points[2][axis];
         }
 
         mid /= arg_triangles.size() * 3;
 
         for (const Triangle &triangle : arg_triangles) {
-            if (triangle.points[0][axis] < mid || triangle.points[1][axis] < mid ||
-                triangle.points[2][axis] < mid) {
+            if (triangle.points[0][axis] < mid || triangle.points[1][axis] < mid || triangle.points[2][axis] < mid) {
                 l.emplace_back(triangle);
-            } else {
+            }
+            else {
                 r.emplace_back(triangle);
             }
         }
@@ -91,15 +95,22 @@ public:
         return {l, r};
     }
 
-    vector<Triangle> intersect(const Ray &ray) const {
+    vector<Triangle> intersect(const Ray &ray) const
+    {
 
         if (this->left == nullptr && this->right == nullptr) {
             return this->triangles;
         }
 
         // If right and left, return both
-        auto opt_l = this->left->bounds.intersect(ray);
-        auto opt_r = this->right->bounds.intersect(ray);
+        auto opt_l = optional<Hit>(std::nullopt);
+        auto opt_r = optional<Hit>(std::nullopt);
+        if (this->left != nullptr) {
+            opt_l = this->left->bounds.intersect(ray);
+        }
+        if (this->right != nullptr) {
+             opt_r = this->right->bounds.intersect(ray);
+        }
 
         if (opt_l.has_value() && opt_r.has_value()) {
             vector<Triangle> leftpart = this->left->intersect(ray);
@@ -123,11 +134,13 @@ public:
     }
 };
 
-class BVHTracer : public Tracer {
+class BVHTracer: public Tracer
+{
 public:
-    BVHNode * root;
+    BVHNode *root;
 
-    optional<Hit> trace(const Ray &ray) const override {
+    optional<Hit> trace(const Ray &ray) const override
+    {
         optional<Hit> closest_hit;
         optional<Hit> hit = root->bounds.intersect(ray);
 
@@ -157,7 +170,7 @@ public:
         const auto startTime = clock();
         //construct(0, 0, std::move(idxs));
         vector<Triangle> triangles;
-        triangles.reserve(_objects.size());
+        triangles.reserve(objects.size());
         for (auto &ptr : objects) {
             triangles.push_back(*dynamic_cast<Triangle *>(ptr.get()));
         }
@@ -166,7 +179,8 @@ public:
         cout << "BVH construction time: " << (endTime - startTime) / (double) CLOCKS_PER_SEC << "s" << endl;
     }
 
-    explicit BVHTracer(vector<Triangle> &triangles) {
+    explicit BVHTracer(vector<Triangle> &triangles)
+    {
         this->root = new BVHNode(triangles);
     }
 };
